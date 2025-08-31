@@ -94,54 +94,207 @@ function generateRandomData() {
 // Initial data
 let currentData = generateRandomData();
 
-// Color palettes for different styles
-const colorPalettes = {
-    classic: [
-        "#3498db", "#e74c3c", "#2ecc71", "#f39c12", 
-        "#9b59b6", "#34495e", "#1abc9c", "#e67e22"
-    ],
-    ocean: [
-        "#006994", "#13A8A8", "#52C7B8", "#A4E2C6",
-        "#0891b2", "#0e7490", "#155e75", "#164e63"
-    ],
-    sunset: [
-        "#FF6B6B", "#FF8E53", "#FF6B9D", "#C44569",
-        "#F8B500", "#FF7675", "#FD79A8", "#E84393"
-    ],
-    forest: [
-        "#27AE60", "#2ECC71", "#58D68D", "#82E0AA",
-        "#16A085", "#48C9B0", "#76D7C4", "#A3E4D7"
-    ],
-    monochrome: [
-        "#2C3E50", "#34495E", "#5D6D7E", "#85929E",
-        "#ABB2B9", "#CCD1D1", "#D5DBDB", "#EAEDED"
-    ]
+// Layer-based cohesive color themes
+const colorThemes = {
+    classic: {
+        name: "Classic",
+        layers: [
+            ["#3498db", "#2980b9", "#1f618d"], // Blues for layer 0
+            ["#e74c3c", "#c0392b", "#922b21"], // Reds for layer 1 
+            ["#27ae60", "#229954", "#1e8449"]  // Greens for layer 2
+        ]
+    },
+    ocean: {
+        name: "Ocean Depths",
+        layers: [
+            ["#5dade2", "#3498db", "#2980b9"], // Light to dark blues
+            ["#48c9b0", "#1abc9c", "#16a085"], // Teals
+            ["#45b7a8", "#2ecc71", "#27ae60"]  // Ocean greens (brighter)
+        ]
+    },
+    sunset: {
+        name: "Sunset Gradient", 
+        layers: [
+            ["#f7dc6f", "#f4d03f", "#f1c40f"], // Golden yellows
+            ["#f8c471", "#f39c12", "#e67e22"], // Oranges
+            ["#e74c3c", "#c0392b", "#a93226"]  // Warm reds
+        ]
+    },
+    forest: {
+        name: "Forest Canopy",
+        layers: [
+            ["#a9dfbf", "#82e5aa", "#58d68d"], // Light greens
+            ["#2ecc71", "#27ae60", "#229954"], // Medium greens
+            ["#1e8449", "#186a3b", "#145a32"]  // Deep greens
+        ]
+    },
+    vibrant: {
+        name: "Vibrant",
+        layers: [
+            ["#ff6b6b", "#4ecdc4", "#45b7d1"], // Bright coral, teal, blue
+            ["#96ceb4", "#ffeaa7", "#dda0dd"], // Mint, yellow, plum
+            ["#fd79a8", "#fdcb6e", "#6c5ce7"]  // Pink, orange, purple
+        ]
+    },
+    coral: {
+        name: "Coral Reef",
+        layers: [
+            ["#ff7675", "#fd79a8", "#e84393"], // Coral pinks
+            ["#00b894", "#00cec9", "#55a3ff"], // Turquoise blues
+            ["#fdcb6e", "#e17055", "#d63031"]  // Warm corals
+        ]
+    },
+    neon: {
+        name: "Neon Nights",
+        layers: [
+            ["#00f5ff", "#1e90ff", "#0080ff"], // Electric blues
+            ["#ff1493", "#ff69b4", "#ff6347"], // Hot pinks/oranges
+            ["#00ff7f", "#32cd32", "#7fff00"]  // Electric greens
+        ]
+    },
+    pastels: {
+        name: "Soft Pastels",
+        layers: [
+            ["#ffeaa7", "#fab1a0", "#fd79a8"], // Soft yellows to pinks
+            ["#81ecec", "#74b9ff", "#a29bfe"], // Soft cyans to purples
+            ["#55a3ff", "#00b894", "#00cec9"]  // Soft blues to teals
+        ]
+    },
+    cosmic: {
+        name: "Cosmic Aurora",
+        layers: [
+            ["#a29bfe", "#6c5ce7", "#5f3dc4"], // Purple nebulas
+            ["#fd79a8", "#e84393", "#d63031"], // Pink auroras
+            ["#00cec9", "#00b894", "#55a3ff"]  // Cosmic blues
+        ]
+    },
+    tropical: {
+        name: "Tropical Paradise",
+        layers: [
+            ["#00cec9", "#55efc4", "#00b894"], // Tropical waters
+            ["#ffeaa7", "#fdcb6e", "#e17055"], // Sunset oranges
+            ["#fd79a8", "#e84393", "#74b9ff"]  // Tropical flowers
+        ]
+    },
+    cyberpunk: {
+        name: "Cyberpunk City",
+        layers: [
+            ["#ff0080", "#00ffff", "#8000ff"], // Hot pink, cyan, purple
+            ["#ffff00", "#ff8000", "#00ff80"], // Electric yellow, orange, green
+            ["#ff4080", "#80ff00", "#4080ff"]  // Bright magenta, lime, electric blue
+        ]
+    },
+    sakura: {
+        name: "Cherry Blossom",
+        layers: [
+            ["#ffb3d9", "#ff99cc", "#ff80bf"], // Soft pinks
+            ["#ffccf2", "#e6b3ff", "#d999ff"], // Light purples
+            ["#ccb3ff", "#b399ff", "#9980ff"]  // Lavender purples
+        ]
+    },
+    retro: {
+        name: "Retro Wave",
+        layers: [
+            ["#ff6b9d", "#c44569", "#f8b500"], // Retro pinks and gold
+            ["#00d2d3", "#0fb9b1", "#009ffd"], // Retro teals and blues
+            ["#7209b7", "#a663cc", "#4834d4"]  // Retro purples
+        ]
+    },
+    mint: {
+        name: "Mint Fresh",
+        layers: [
+            ["#55efc4", "#00b894", "#00cec9"], // Fresh mints
+            ["#81ecec", "#74b9ff", "#0984e3"], // Cool blues
+            ["#a29bfe", "#6c5ce7", "#fd79a8"]  // Soft purples and pink
+        ]
+    },
+    golden: {
+        name: "Golden Hour",
+        layers: [
+            ["#ffd700", "#ffb347", "#ff8c42"], // Golden yellows
+            ["#ff6b35", "#f7931e", "#ffaa44"], // Warm oranges
+            ["#ff5722", "#e91e63", "#9c27b0"]  // Sunset reds to purple
+        ]
+    }
 };
 
-// Current color style index
-let currentStyleIndex = 0;
-const styleNames = Object.keys(colorPalettes);
-let currentColors = colorPalettes[styleNames[currentStyleIndex]];
+// Current color theme index
+let currentThemeIndex = 0;
+const themeNames = Object.keys(colorThemes);
 
-// Node style variations
-const nodeStyles = {
-    rounded: { rx: 3, ry: 3 },
-    square: { rx: 0, ry: 0 },
-    circular: { rx: 15, ry: 15 },
-    pill: { rx: 8, ry: 8 }
-};
+// Color utility functions
+function hexToRgb(hex) {
+    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    return result ? {
+        r: parseInt(result[1], 16),
+        g: parseInt(result[2], 16),
+        b: parseInt(result[3], 16)
+    } : null;
+}
 
-// Current node style index
-let currentNodeStyleIndex = 0;
-const nodeStyleNames = Object.keys(nodeStyles);
-let currentNodeStyle = nodeStyles[nodeStyleNames[currentNodeStyleIndex]];
+function rgbToHex(r, g, b) {
+    return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+}
 
-function getNodeColor(nodeName) {
-    const hash = nodeName.split('').reduce((a, b) => {
-        a = ((a << 5) - a) + b.charCodeAt(0);
-        return a & a;
-    }, 0);
-    return currentColors[Math.abs(hash) % currentColors.length];
+function lighten(hex, percent) {
+    const rgb = hexToRgb(hex);
+    if (!rgb) return hex;
+    
+    const factor = 1 + (percent / 100);
+    return rgbToHex(
+        Math.min(255, Math.floor(rgb.r * factor)),
+        Math.min(255, Math.floor(rgb.g * factor)),
+        Math.min(255, Math.floor(rgb.b * factor))
+    );
+}
+
+function darken(hex, percent) {
+    const rgb = hexToRgb(hex);
+    if (!rgb) return hex;
+    
+    const factor = 1 - (percent / 100);
+    return rgbToHex(
+        Math.floor(rgb.r * factor),
+        Math.floor(rgb.g * factor),
+        Math.floor(rgb.b * factor)
+    );
+}
+
+// Current color theme
+let currentTheme = colorThemes[themeNames[currentThemeIndex]];
+
+// Get link color based on source node layer and position
+function getLinkColor(sourceNode) {
+    const layerColors = currentTheme.layers[sourceNode.layer] || currentTheme.layers[0];
+    
+    // Get position of node within its layer for color variation
+    // Use currentData instead of baseStructure to work with actual extracted data
+    const layerNodes = currentData.nodes.filter(n => n.layer === sourceNode.layer);
+    const nodeIndex = layerNodes.findIndex(n => n.id === sourceNode.id);
+    
+    // Use node index to pick color from layer palette, fallback to node ID if not found
+    const colorIndex = nodeIndex >= 0 ? nodeIndex : (sourceNode.id || 0);
+    return layerColors[colorIndex % layerColors.length];
+}
+
+// Get node color (related but different from outbound link color)
+function getNodeColor(node) {
+    const linkColor = getLinkColor(node);
+    
+    // Convert to RGB to check brightness
+    const rgb = hexToRgb(linkColor);
+    if (!rgb) return linkColor;
+    
+    // Calculate brightness (0-255)
+    const brightness = (rgb.r * 299 + rgb.g * 587 + rgb.b * 114) / 1000;
+    
+    // If the link color is already dark, lighten the node instead of darkening
+    if (brightness < 120) {
+        return lighten(linkColor, 20);
+    } else {
+        // For lighter colors, darken slightly for contrast
+        return darken(linkColor, 10);
+    }
 }
 
 // Create SVG elements using vanilla JavaScript
@@ -188,10 +341,7 @@ function calculateSankeyLayout(data) {
     const layerWidth = Math.max(140, 220 - numLayers * 10); // Increased layer width
     const minDiagramHeight = 320; // Increased minimum height
     
-    // Calculate proportional heights for each layer
-    const layerHeights = [];
-    let totalDiagramHeight = minDiagramHeight;
-    
+    // Calculate proportional heights for nodes in all layers
     layers.forEach((layer, layerIndex) => {
         const layerNodes = nodes.filter(d => d.layer === layer);
         
@@ -205,54 +355,66 @@ function calculateSankeyLayout(data) {
                 node.height = Math.round(minNodeHeight + (normalizedValue * (maxNodeHeight - minNodeHeight)));
             }
         });
-        
-        // Calculate spacing needed between nodes to prevent label overlap
-        let dynamicPadding = basePadding;
-        for (let i = 0; i < layerNodes.length - 1; i++) {
-            const currentNodeHeight = layerNodes[i].height;
-            const nextNodeHeight = layerNodes[i + 1].height;
-            // Ensure there's enough space for labels above nodes
-            const requiredPadding = Math.max(basePadding, labelHeight + 4);
-            dynamicPadding = Math.max(dynamicPadding, requiredPadding);
-        }
-        
-        // Calculate total height needed for this layer with dynamic padding
-        const layerTotalHeight = layerNodes.reduce((sum, node) => sum + node.height, 0) + 
-                                (layerNodes.length - 1) * dynamicPadding + labelHeight; // Add space for top labels
-        layerHeights[layerIndex] = layerTotalHeight;
     });
     
-    // Use the tallest layer to determine diagram height
-    const maxLayerHeight = Math.max(...layerHeights);
-    const diagramHeight = Math.max(minDiagramHeight, maxLayerHeight + 80); // Add some margin
+    // Calculate diagram height based on content and spacing needs
+    const allNodeHeights = nodes.map(n => n.height);
+    const maxTotalNodesHeight = Math.max(...layers.map(layer => {
+        const layerNodes = nodes.filter(d => d.layer === layer);
+        return layerNodes.reduce((sum, node) => sum + node.height, 0);
+    }));
+    
+    // Ensure we have enough space for the largest layer plus labels and margins
+    const diagramHeight = Math.max(
+        minDiagramHeight, 
+        maxTotalNodesHeight + labelHeight * 3 + 100 // Extra space for labels, gaps, and margins
+    );
     
     // Calculate required width
     const diagramWidth = Math.max(400, (numLayers - 1) * layerWidth + nodeWidth + 100);
     
-    // Position nodes within each layer with proper spacing
+    // Position nodes within each layer with even vertical distribution
     layers.forEach((layer, layerIndex) => {
         const layerNodes = nodes.filter(d => d.layer === layer);
-        const layerTotalHeight = layerHeights[layerIndex];
         
-        // Calculate dynamic padding for this layer
-        let dynamicPadding = basePadding;
-        for (let i = 0; i < layerNodes.length - 1; i++) {
-            const requiredPadding = Math.max(basePadding, labelHeight + 4);
-            dynamicPadding = Math.max(dynamicPadding, requiredPadding);
-        }
+        if (layerNodes.length === 0) return;
         
-        // Center the layer vertically
-        const layerStartY = (diagramHeight - layerTotalHeight) / 2 + labelHeight + 20;
+        // Calculate total height used by nodes in this layer
+        const totalNodesHeight = layerNodes.reduce((sum, node) => sum + node.height, 0);
         
-        let currentY = layerStartY;
-        layerNodes.forEach((node, nodeIndex) => {
-            node.x = layerIndex * layerWidth + 50; // Add left margin
-            node.y = currentY;
+        // Available space for distribution (excluding margins)
+        const availableHeight = diagramHeight - labelHeight * 2 - 40; // Top and bottom margins
+        const availableSpaceForGaps = availableHeight - totalNodesHeight;
+        
+        // Distribute nodes evenly within available space
+        if (layerNodes.length === 1) {
+            // Single node - center it
+            const node = layerNodes[0];
+            node.x = layerIndex * layerWidth + 50;
+            node.y = (diagramHeight - node.height) / 2;
             node.width = nodeWidth;
-            // Height was already calculated above
+        } else {
+            // Multiple nodes - distribute evenly
+            const gapSize = Math.max(basePadding, availableSpaceForGaps / (layerNodes.length - 1));
             
-            currentY += node.height + dynamicPadding;
-        });
+            // Start from top with margin
+            let currentY = labelHeight + 20;
+            
+            // If we have too much space, center the whole layer
+            const totalLayerHeight = totalNodesHeight + (layerNodes.length - 1) * gapSize;
+            if (totalLayerHeight < availableHeight) {
+                currentY = (diagramHeight - totalLayerHeight) / 2 + labelHeight / 2;
+            }
+            
+            layerNodes.forEach((node, nodeIndex) => {
+                node.x = layerIndex * layerWidth + 50;
+                node.y = currentY;
+                node.width = nodeWidth;
+                // Height was already calculated above
+                
+                currentY += node.height + gapSize;
+            });
+        }
     });
     
     // Calculate link heights and stacking positions
@@ -384,7 +546,7 @@ function createSankeyDiagram(data) {
         graph.links.forEach(link => {
             const path = createSVGElement('path', {
                 d: link.path,
-                fill: getNodeColor(link.sourceNode.name),
+                fill: getLinkColor(link.sourceNode),
                 'fill-opacity': '0.6',
                 stroke: 'none',
                 class: 'sankey-link'
@@ -414,15 +576,14 @@ function createSankeyDiagram(data) {
                 transform: `translate(${node.x}, ${node.y})`
             });
             
-            // Create rectangle with current node style
+            // Create square rectangle with no border
             const rect = createSVGElement('rect', {
                 width: node.width,
                 height: node.height,
-                fill: getNodeColor(node.name),
-                stroke: '#333',
-                'stroke-width': '1',
-                rx: currentNodeStyle.rx,
-                ry: currentNodeStyle.ry
+                fill: getNodeColor(node),
+                stroke: 'none',
+                rx: 0,
+                ry: 0
             });
             
             // Create label
@@ -503,51 +664,92 @@ function getPageData() {
     });
 }
 
-// Function to cycle to the next color style
-function cycleToNextColorStyle() {
-    currentStyleIndex = (currentStyleIndex + 1) % styleNames.length;
-    currentColors = colorPalettes[styleNames[currentStyleIndex]];
+// Function to apply selected color theme
+function applyColorTheme() {
+    const themeSelect = document.getElementById('color-dropdown');
+    const selectedIndex = parseInt(themeSelect.value);
     
-    console.log(`Switched to color style: ${styleNames[currentStyleIndex]}`);
-    
-    // Update button text to show current style
-    updateColorButton();
+    if (selectedIndex >= 0 && selectedIndex < themeNames.length) {
+        const selectedThemeName = themeNames[selectedIndex];
+        currentTheme = colorThemes[selectedThemeName];
+        console.log(`Applied theme: ${currentTheme.name}`);
+        
+        // Show loading
+        document.getElementById('loading').textContent = 'Applying theme...';
+        document.getElementById('loading').style.display = 'block';
+        
+        // Regenerate diagram with new theme
+        createSankeyDiagram(currentData);
+    }
 }
 
-// Function to cycle to the next node style
-function cycleToNextNodeStyle() {
-    currentNodeStyleIndex = (currentNodeStyleIndex + 1) % nodeStyleNames.length;
-    currentNodeStyle = nodeStyles[nodeStyleNames[currentNodeStyleIndex]];
+// Function to apply a random theme
+function applyRandomTheme() {
+    // Get a random theme index
+    const randomIndex = Math.floor(Math.random() * themeNames.length);
+    const randomThemeName = themeNames[randomIndex];
     
-    console.log(`Switched to node style: ${nodeStyleNames[currentNodeStyleIndex]}`);
+    // Update the dropdown to reflect the random selection
+    const themeSelect = document.getElementById('color-dropdown');
+    themeSelect.value = randomIndex.toString();
     
-    // Update button text to show current style
-    updateNodeStyleButton();
+    // Apply the random theme
+    currentTheme = colorThemes[randomThemeName];
+    console.log(`Applied random theme: ${currentTheme.name}`);
+    
+    // Show loading
+    document.getElementById('loading').textContent = `Applying ${currentTheme.name} theme...`;
+    document.getElementById('loading').style.display = 'block';
+    
+    // Regenerate diagram with new theme
+    createSankeyDiagram(currentData);
 }
 
-// Function to update the color button text
-function updateColorButton() {
-    const button = document.getElementById('color-btn');
-    const currentStyleName = styleNames[currentStyleIndex];
-    const nextStyleName = styleNames[(currentStyleIndex + 1) % styleNames.length];
+// Function to refresh data from the current page
+function refreshFromPage() {
+    console.log('🔄 Refreshing data from current page...');
     
-    button.textContent = `${nextStyleName.charAt(0).toUpperCase() + nextStyleName.slice(1)} Colors`;
-    button.title = `Currently using ${currentStyleName} colors. Click to switch to ${nextStyleName} colors.`;
-}
-
-// Function to update the node style button text
-function updateNodeStyleButton() {
-    const button = document.getElementById('style-btn');
-    const currentStyleName = nodeStyleNames[currentNodeStyleIndex];
-    const nextStyleName = nodeStyleNames[(currentNodeStyleIndex + 1) % nodeStyleNames.length];
+    // Show loading
+    document.getElementById('loading').textContent = 'Refreshing data from page...';
+    document.getElementById('loading').style.display = 'block';
     
-    button.textContent = `${nextStyleName.charAt(0).toUpperCase() + nextStyleName.slice(1)} Nodes`;
-    button.title = `Currently using ${currentStyleName} node style. Click to switch to ${nextStyleName} nodes.`;
+    // Try to get fresh data from the current webpage
+    getPageData().then(pageData => {
+        console.log('Refresh - getPageData resolved with:', pageData);
+        
+        if (pageData) {
+            // Use fresh data from the webpage
+            console.log('✅ Successfully refreshed data from webpage');
+            console.log('New page data nodes:', pageData.nodes?.length || 0);
+            console.log('New page data links:', pageData.links?.length || 0);
+            currentData = pageData;
+            
+            // Update the diagram with new data
+            createSankeyDiagram(currentData);
+        } else {
+            // If no data found, show error message
+            console.log('❌ No new data found on page during refresh');
+            document.getElementById('loading').textContent = 'No data found on current page';
+            
+            // Hide loading message after a short delay
+            setTimeout(() => {
+                document.getElementById('loading').style.display = 'none';
+            }, 2000);
+        }
+    }).catch(error => {
+        console.error('❌ Error during refresh:', error);
+        document.getElementById('loading').textContent = 'Error refreshing data';
+        
+        // Hide loading message after a short delay
+        setTimeout(() => {
+            document.getElementById('loading').style.display = 'none';
+        }, 2000);
+    });
 }
 
 // Initialize when DOM is loaded
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('SankeyStone popup loaded - style cycling version');
+    console.log('SankeyStone popup loaded - theme dropdown version');
     
     // Show loading while we try to get page data
     document.getElementById('loading').textContent = 'Extracting data from page...';
@@ -569,49 +771,22 @@ document.addEventListener('DOMContentLoaded', function() {
             currentData = generateRandomData();
         }
         
-        // Set initial button text
-        updateColorButton();
-        updateNodeStyleButton();
-        
         // Create initial diagram
         createSankeyDiagram(currentData);
     }).catch(error => {
         console.error('❌ Error during initialization:', error);
         currentData = generateRandomData();
-        updateColorButton();
-        updateNodeStyleButton();
         createSankeyDiagram(currentData);
     });
     
-    // Add event listener for color cycling button
-    document.getElementById('color-btn').addEventListener('click', function() {
-        console.log('Color cycle button clicked');
-        
-        // Show loading
-        document.getElementById('loading').textContent = 'Applying new colors...';
-        document.getElementById('loading').style.display = 'block';
-        
-        // Cycle to next color style
-        cycleToNextColorStyle();
-        
-        // Regenerate diagram with same data but new colors
-        createSankeyDiagram(currentData);
-    });
+    // Add event listener for dropdown change - apply theme immediately
+    document.getElementById('color-dropdown').addEventListener('change', applyColorTheme);
     
-    // Add event listener for node style cycling button
-    document.getElementById('style-btn').addEventListener('click', function() {
-        console.log('Node style cycle button clicked');
-        
-        // Show loading
-        document.getElementById('loading').textContent = 'Applying new node style...';
-        document.getElementById('loading').style.display = 'block';
-        
-        // Cycle to next node style
-        cycleToNextNodeStyle();
-        
-        // Regenerate diagram with same data but new node style
-        createSankeyDiagram(currentData);
-    });
+    // Add event listener for refresh button
+    document.getElementById('refresh-btn').addEventListener('click', refreshFromPage);
+    
+    // Add event listener for random theme button
+    document.getElementById('random-btn').addEventListener('click', applyRandomTheme);
 });
 
 // Export for potential future use

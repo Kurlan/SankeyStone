@@ -146,6 +146,94 @@ function extractSankeyTableData() {
     }
 }
 
+// Function to extract page context for LLM analysis
+function extractPageContext() {
+    try {
+        console.log('🔍 Extracting page context for LLM analysis...');
+        
+        // Extract page title
+        const title = document.title || 'Untitled Page';
+        
+        // Extract main headings
+        const headings = [];
+        const headingSelectors = ['h1', 'h2', 'h3'];
+        headingSelectors.forEach(selector => {
+            const elements = document.querySelectorAll(selector);
+            elements.forEach(el => {
+                const text = el.textContent.trim();
+                if (text && text.length < 200) { // Avoid very long headings
+                    headings.push(text);
+                }
+            });
+        });
+        
+        // Extract main text content (paragraphs, divs with substantial text)
+        let content = '';
+        const contentSelectors = ['p', 'div', 'article', 'section', 'main'];
+        contentSelectors.forEach(selector => {
+            const elements = document.querySelectorAll(selector);
+            elements.forEach(el => {
+                const text = el.textContent.trim();
+                // Only include elements with substantial text content
+                if (text && text.length > 20 && text.length < 500) {
+                    content += text + ' ';
+                }
+            });
+        });
+        
+        // Extract table data
+        const tables = [];
+        const tableElements = document.querySelectorAll('table');
+        tableElements.forEach(table => {
+            const rows = table.querySelectorAll('tr');
+            if (rows.length > 1 && rows.length < 20) { // Reasonable table size
+                let tableText = '';
+                rows.forEach((row, idx) => {
+                    if (idx < 10) { // Limit rows to avoid too much data
+                        const cells = row.querySelectorAll('td, th');
+                        const rowText = Array.from(cells).map(cell => cell.textContent.trim()).join(' | ');
+                        if (rowText) {
+                            tableText += rowText + '\n';
+                        }
+                    }
+                });
+                if (tableText) {
+                    tables.push(tableText.trim());
+                }
+            }
+        });
+        
+        // Extract list data
+        const lists = [];
+        const listElements = document.querySelectorAll('ul, ol');
+        listElements.forEach(list => {
+            const items = list.querySelectorAll('li');
+            if (items.length > 1 && items.length < 15) { // Reasonable list size
+                const listText = Array.from(items).map(item => item.textContent.trim()).join(', ');
+                if (listText && listText.length < 500) {
+                    lists.push(listText);
+                }
+            }
+        });
+        
+        const pageContext = {
+            title: title,
+            url: window.location.href,
+            headings: headings.slice(0, 10), // Limit to first 10 headings
+            content: content.substring(0, 3000), // Limit content length
+            tables: tables.slice(0, 5), // Limit to first 5 tables
+            lists: lists.slice(0, 5) // Limit to first 5 lists
+        };
+        
+        console.log('✅ Extracted page context:', pageContext);
+        return pageContext;
+        
+    } catch (error) {
+        console.error('❌ Error extracting page context:', error);
+        return null;
+    }
+}
+
 // Function to respond to messages from the extension popup
 function handleMessage(request, sender, sendResponse) {
     console.log('🔍 Content Script: Received message from popup:', request);
@@ -180,6 +268,16 @@ function handleMessage(request, sender, sendResponse) {
             success: false, 
             error: 'No Sankey data found on this page' 
         });
+    } else if (request.action === 'getPageContext') {
+        console.log('🔍 Content Script: Extracting page context...');
+        const pageContext = extractPageContext();
+        if (pageContext) {
+            console.log('✅ Content Script: Successfully extracted page context');
+            sendResponse({ success: true, data: pageContext });
+        } else {
+            console.log('❌ Content Script: Failed to extract page context');
+            sendResponse({ success: false, error: 'Failed to extract page context' });
+        }
     } else {
         console.log('❓ Content Script: Unknown action:', request.action);
         sendResponse({ success: false, error: 'Unknown action' });

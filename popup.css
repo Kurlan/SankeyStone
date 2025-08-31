@@ -200,6 +200,48 @@ main {
     outline-offset: 2px;
 }
 
+/* Diagram Status Styling */
+.diagram-status {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 8px 12px;
+    margin-top: 8px;
+    background: rgba(248, 249, 250, 0.9);
+    border: 1px solid #e1e5e9;
+    border-radius: 6px;
+    font-size: 12px;
+    color: #586069;
+    transition: all 0.2s ease;
+}
+
+.diagram-status.llm-generated {
+    background: rgba(52, 152, 219, 0.1);
+    border-color: rgba(52, 152, 219, 0.3);
+    color: #2980b9;
+}
+
+.diagram-status.page-data {
+    background: rgba(46, 204, 113, 0.1);
+    border-color: rgba(46, 204, 113, 0.3);
+    color: #27ae60;
+}
+
+.diagram-status.sample-data {
+    background: rgba(155, 89, 182, 0.1);
+    border-color: rgba(155, 89, 182, 0.3);
+    color: #8e44ad;
+}
+
+#status-icon {
+    font-size: 14px;
+}
+
+#status-text {
+    font-weight: 500;
+}
+
 /* ===== VIEW SWITCHING ===== */
 .view {
     display: flex;

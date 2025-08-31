@@ -102,7 +102,7 @@ main {
     box-shadow: 0 0 0 2px rgba(26, 115, 232, 0.2);
 }
 
-#color-btn, #random-btn, #refresh-btn {
+#color-btn, #random-btn, #refresh-btn, #download-btn {
     background-color: #1a73e8;
     color: white;
     border: none;
@@ -114,11 +114,11 @@ main {
     min-width: 100px;
 }
 
-#color-btn:hover, #random-btn:hover, #refresh-btn:hover {
+#color-btn:hover, #random-btn:hover, #refresh-btn:hover, #download-btn:hover {
     background-color: #1557b0;
 }
 
-#color-btn:active, #random-btn:active, #refresh-btn:active {
+#color-btn:active, #random-btn:active, #refresh-btn:active, #download-btn:active {
     background-color: #0d47a1;
 }
 
@@ -146,6 +146,19 @@ main {
 
 #random-btn:active {
     background-color: #1e7e34;
+}
+
+#download-btn {
+    background-color: #673ab7;
+    min-width: 130px;
+}
+
+#download-btn:hover {
+    background-color: #5e35b1;
+}
+
+#download-btn:active {
+    background-color: #512da8;
 }
 
 /* Sankey diagram specific styles */

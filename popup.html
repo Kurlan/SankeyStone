@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SankeyStone</title>
+    <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>SankeyStone</h1>
+            <p>Generate Sankey Diagrams</p>
+        </header>
+        
+        <main>
+            <div id="sankey-container">
+                <div id="loading">Loading diagram...</div>
+                <svg id="sankey-svg"></svg>
+            </div>
+            
+            <div class="controls">
+                <button id="regenerate-btn">Regenerate Diagram</button>
+            </div>
+        </main>
+    </div>
+    
+<script src="popup.js"></script>
+</body>
+</html>

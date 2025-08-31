@@ -234,6 +234,21 @@ main {
     color: #8e44ad;
 }
 
+/* New status types for enhanced LLM processing feedback */
+.diagram-status.page-data.llm-enhanced {
+    background: linear-gradient(90deg, rgba(46, 204, 113, 0.1) 50%, rgba(52, 152, 219, 0.1) 50%);
+    border-color: rgba(52, 152, 219, 0.4);
+    color: #1e7e34;
+    border-left: 3px solid #27ae60;
+}
+
+.diagram-status.page-data.llm-enhanced #status-icon {
+    background: linear-gradient(90deg, #27ae60, #2980b9);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    font-weight: bold;
+}
+
 #status-icon {
     font-size: 14px;
 }

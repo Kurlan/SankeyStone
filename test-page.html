@@ -66,10 +66,10 @@
 
     <div class="data-section">
         <h3>🧪 Test Controls</h3>
-        <p>Use these buttons to test the extension's data extraction capabilities:</p>
-        <button id="randomize-data" style="background-color: #2196f3; color: white; border: none; padding: 10px 20px; border-radius: 4px; margin-right: 10px; cursor: pointer; font-size: 14px;">🎲 Randomize Page Data</button>
-        <button id="reset-data" style="background-color: #4caf50; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; font-size: 14px;">🔄 Reset to Original</button>
-        <p style="margin-top: 10px; font-size: 14px; color: #666;">After clicking "Randomize Page Data", use the "Refresh from Page" button in the SankeyStone extension to see the updated diagram.</p>
+        <p>Use this button to test the extension with different business contexts:</p>
+        <button id="randomize-data" style="background-color: #2196f3; color: white; border: none; padding: 12px 24px; border-radius: 4px; cursor: pointer; font-size: 14px; font-weight: 600;">🎲 Generate New Context & Data</button>
+        <p style="margin-top: 10px; font-size: 14px; color: #666;">This will generate a completely new business scenario with different labels and values. Use "Refresh from Page" in the SankeyStone extension to visualize the new data.</p>
+        <div id="current-context" style="margin-top: 15px; padding: 10px; background: #f5f5f5; border-radius: 4px; font-style: italic;">Current Context: Website Analytics</div>
     </div>
 
     <!-- Sankey Data embedded in the page -->
@@ -113,7 +113,10 @@
                 { "source": 6, "target": 9, "value": 1200 },
                 { "source": 6, "target": 10, "value": 2600 },
                 { "source": 7, "target": 9, "value": 150 },
-                { "source": 7, "target": 10, "value": 250 }
+                { "source": 7, "target": 10, "value": 250 },
+                { "source": 0, "target": 8, "value": 600 },
+                { "source": 1, "target": 10, "value": 420 },
+                { "source": 3, "target": 9, "value": 350 }
             ]
         }
         </script>
@@ -218,8 +221,85 @@
     </div>
     <!-- JavaScript for data manipulation -->
     <script>
-        // Store original data for reset
-        let originalData = null;
+        // Different business contexts with expandable label pools
+        const businessContexts = {
+            'ecommerce': {
+                name: 'E-commerce Analytics',
+                labelPools: [
+                    ['Google Ads', 'Facebook Ads', 'Email Campaign', 'Organic Search', 'Affiliate Links', 'Instagram Ads'],
+                    ['Product Pages', 'Category Pages', 'Search Results', 'Cart Page', 'Checkout', 'Reviews'],
+                    ['Add to Cart', 'Wishlist', 'Compare', 'Share', 'Quick View', 'Size Guide'],
+                    ['Purchase', 'Abandoned Cart', 'Guest Checkout', 'Account Created', 'Newsletter', 'Exit']
+                ]
+            },
+            'education': {
+                name: 'Online Education Platform',
+                labelPools: [
+                    ['Course Catalog', 'Social Media', 'Partner Sites', 'Direct Access', 'Search Engine', 'Referrals'],
+                    ['Course Preview', 'Instructor Profile', 'Pricing Page', 'Free Content', 'Student Reviews', 'Curriculum'],
+                    ['Watch Demo', 'Download Syllabus', 'Chat with Advisor', 'Read Reviews', 'Compare Courses', 'FAQ'],
+                    ['Enrollment', 'Free Trial', 'Contact', 'Bookmark', 'Share Course', 'Exit']
+                ]
+            },
+            'healthcare': {
+                name: 'Healthcare Patient Flow',
+                labelPools: [
+                    ['Emergency', 'Referral', 'Walk-in', 'Appointment', 'Telemedicine', 'Insurance Portal'],
+                    ['Triage', 'Consultation', 'Diagnostics', 'Waiting Room', 'Specialist', 'Lab Tests'],
+                    ['X-Ray', 'Blood Work', 'Physical Exam', 'Medical History', 'Vital Signs', 'Screening'],
+                    ['Treatment', 'Prescription', 'Follow-up', 'Discharge', 'Referral Out', 'Home Care']
+                ]
+            },
+            'saas': {
+                name: 'SaaS Product Analytics',
+                labelPools: [
+                    ['Trial Signup', 'Demo Request', 'Pricing Page', 'Blog Content', 'Webinar', 'Free Tools'],
+                    ['Dashboard', 'Feature Tour', 'Documentation', 'Settings', 'Onboarding', 'Templates'],
+                    ['Create Project', 'Import Data', 'Invite Team', 'Watch Tutorial', 'Contact Support', 'Upgrade Prompt'],
+                    ['Subscription', 'Free Plan', 'Support Ticket', 'Churn', 'Referral', 'Feature Request']
+                ]
+            },
+            'media': {
+                name: 'Content Platform Analytics',
+                labelPools: [
+                    ['Homepage', 'Search', 'Recommendations', 'Social Shares', 'Direct Link', 'Push Notification'],
+                    ['Article View', 'Video Play', 'Gallery Browse', 'Profile Visit', 'Category Page', 'Trending'],
+                    ['Like', 'Share', 'Bookmark', 'Comment', 'Follow Author', 'Related Content'],
+                    ['Subscribe', 'Share External', 'Comment Posted', 'Bounce', 'Download', 'Print']
+                ]
+            },
+            'finance': {
+                name: 'Financial Services Flow',
+                labelPools: [
+                    ['Web Search', 'Mobile App', 'Branch Visit', 'Phone Call', 'Email Link', 'Advertisement'],
+                    ['Account Info', 'Loan Calculator', 'Investment Tools', 'Support', 'Product Comparison', 'Rates Page'],
+                    ['Apply Online', 'Schedule Meeting', 'Download Forms', 'Chat Support', 'Call Back Request', 'Email Info'],
+                    ['Account Opening', 'Loan Application', 'Investment', 'Information Only', 'Referral', 'Follow-up Call']
+                ]
+            },
+            'manufacturing': {
+                name: 'Manufacturing Process Flow',
+                labelPools: [
+                    ['Raw Materials', 'Supplier A', 'Supplier B', 'Recycled Input', 'Emergency Stock'],
+                    ['Quality Check', 'Assembly Line 1', 'Assembly Line 2', 'Custom Orders', 'Batch Processing'],
+                    ['Testing', 'Packaging', 'Quality Assurance', 'Labeling', 'Inventory'],
+                    ['Shipped', 'Warehoused', 'Rejected', 'Rework', 'Customer Direct']
+                ]
+            },
+            'retail': {
+                name: 'Retail Customer Journey',
+                labelPools: [
+                    ['Store Entry', 'Online Browse', 'Mobile App', 'Social Media', 'Email Campaign', 'Friend Referral'],
+                    ['Browse Products', 'Ask Staff', 'Try On', 'Check Price', 'Compare Options', 'Read Reviews'],
+                    ['Consider Purchase', 'Add to Cart', 'Ask Questions', 'Check Stock', 'Request Help', 'Take Photo'],
+                    ['Purchase', 'Save for Later', 'Leave Store', 'Sign up Newsletter', 'Return Item', 'Recommend Friend'],
+                    ['Follow-up Survey', 'Loyalty Program', 'Return Visit', 'Online Review', 'Social Share']
+                ]
+            }
+        };
+        
+        // Current context
+        let currentContext = 'ecommerce';
         
         // Function to generate random number between min and max
         function randomInt(min, max) {
@@ -231,104 +311,243 @@
             return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
         }
         
-        // Function to randomize JSON data
-        function randomizeJsonData() {
-            const dataElement = document.getElementById('sankey-data');
-            if (!dataElement) return;
+        // Function to pick random item from array
+        function randomChoice(array) {
+            return array[Math.floor(Math.random() * array.length)];
+        }
+        
+        // Function to shuffle and select random items from array
+        function selectRandom(array, count) {
+            const shuffled = [...array].sort(() => 0.5 - Math.random());
+            return shuffled.slice(0, count);
+        }
+        
+        // Function to generate completely new context and data with variable layers and nodes
+        function generateNewContextData() {
+            // Pick a random business context
+            const contextKeys = Object.keys(businessContexts);
+            currentContext = randomChoice(contextKeys);
+            const contextTemplate = businessContexts[currentContext];
             
-            try {
-                // Parse current data
-                const data = JSON.parse(dataElement.textContent);
-                
-                // Store original data if not already stored
-                if (!originalData) {
-                    originalData = JSON.parse(JSON.stringify(data));
-                }
-                
-                // Randomize link values
-                data.links.forEach(link => {
-                    link.value = randomInt(200, 5000);
-                });
-                
-                // Update the element with new data
-                dataElement.textContent = JSON.stringify(data, null, 4);
-                console.log('JSON data randomized');
-                
-                return data;
-            } catch (error) {
-                console.error('Error randomizing JSON data:', error);
-                return null;
+            // Determine number of layers (2-5)
+            const numLayers = randomInt(2, Math.min(5, contextTemplate.labelPools.length));
+            
+            // Build the actual context with variable layers and nodes
+            const context = {
+                name: contextTemplate.name,
+                layers: []
+            };
+            
+            // For each layer, select random number of nodes (2-6)
+            for (let layerIndex = 0; layerIndex < numLayers; layerIndex++) {
+                const maxNodes = Math.min(6, contextTemplate.labelPools[layerIndex].length);
+                const numNodes = randomInt(2, maxNodes);
+                const selectedLabels = selectRandom(contextTemplate.labelPools[layerIndex], numNodes);
+                context.layers.push(selectedLabels);
             }
+            
+            console.log(`Generated new context: ${context.name} with ${numLayers} layers`, context.layers);
+            
+            // Update context display with layer info
+            const layerInfo = context.layers.map((layer, i) => `Layer ${i + 1}: ${layer.length} nodes`).join(', ');
+            document.getElementById('current-context').textContent = `Current Context: ${context.name} (${layerInfo})`;
+            
+            // Update page title and description
+            document.querySelector('.header h1').textContent = context.name;
+            document.querySelector('.header p').textContent = `Sample data for SankeyStone extension testing - ${context.name.toLowerCase()} with ${numLayers} layers`;
+            
+            // Generate new data structure
+            const nodes = [];
+            const links = [];
+            let nodeIdCounter = 0;
+            
+            // Create nodes for each layer
+            const layerStartIds = [];
+            for (let layerIndex = 0; layerIndex < context.layers.length; layerIndex++) {
+                layerStartIds.push(nodeIdCounter);
+                context.layers[layerIndex].forEach((name, nodeIndex) => {
+                    nodes.push({ 
+                        id: nodeIdCounter++, 
+                        name: name, 
+                        layer: layerIndex, 
+                        category: layerIndex === 0 ? "source" : 
+                                 layerIndex === context.layers.length - 1 ? "outcome" : "middle"
+                    });
+                });
+            }
+            
+            // Generate random links between layers (including layer-skipping links)
+            for (let layerIndex = 0; layerIndex < context.layers.length - 1; layerIndex++) {
+                const currentLayerStart = layerStartIds[layerIndex];
+                const currentLayerSize = context.layers[layerIndex].length;
+                const nextLayerStart = layerStartIds[layerIndex + 1];
+                const nextLayerSize = context.layers[layerIndex + 1].length;
+                
+                // Each node in current layer connects to some nodes in next layer
+                for (let sourceIndex = 0; sourceIndex < currentLayerSize; sourceIndex++) {
+                    const sourceId = currentLayerStart + sourceIndex;
+                    
+                    // Connect to 1-3 nodes in the next layer
+                    const numConnections = randomInt(1, Math.min(3, nextLayerSize));
+                    const targetIndices = selectRandom([...Array(nextLayerSize).keys()], numConnections);
+                    
+                    targetIndices.forEach(targetIndex => {
+                        const targetId = nextLayerStart + targetIndex;
+                        links.push({
+                            source: sourceId,
+                            target: targetId,
+                            value: randomInt(100, 3000)
+                        });
+                    });
+                }
+                
+                // Add layer-skipping links (for nodes that are at least 2 layers apart)
+                if (layerIndex < context.layers.length - 2 && Math.random() < 0.7) { // 70% chance to add skipping links
+                    // Determine how many layers to skip
+                    const maxSkip = Math.min(3, context.layers.length - layerIndex - 1); // Skip at most 3 layers
+                    const layersToSkip = randomInt(1, maxSkip);
+                    const targetLayerIndex = layerIndex + 1 + layersToSkip;
+                    
+                    if (targetLayerIndex < context.layers.length) {
+                        const skipLayerStart = layerStartIds[targetLayerIndex];
+                        const skipLayerSize = context.layers[targetLayerIndex].length;
+                        
+                        // Pick 1-2 source nodes from current layer
+                        const skipSourceCount = Math.min(2, currentLayerSize);
+                        const skipSourceIndices = selectRandom([...Array(currentLayerSize).keys()], skipSourceCount);
+                        
+                        skipSourceIndices.forEach(sourceIndex => {
+                            const sourceId = currentLayerStart + sourceIndex;
+                            
+                            // Connect to 1-2 nodes in the target layer
+                            const skipTargetCount = Math.min(2, skipLayerSize);
+                            const skipTargetIndices = selectRandom([...Array(skipLayerSize).keys()], skipTargetCount);
+                            
+                            skipTargetIndices.forEach(targetIndex => {
+                                const skipTargetId = skipLayerStart + targetIndex;
+                                links.push({
+                                    source: sourceId,
+                                    target: skipTargetId,
+                                    value: randomInt(50, 800) // Smaller values for skipping links
+                                });
+                                console.log(`Added skipping link from layer ${layerIndex} to layer ${targetLayerIndex}`);
+                            });
+                        });
+                    }
+                }
+            }
+            
+            return { nodes, links, context, numLayers };
         }
         
-        // Function to randomize table data
-        function randomizeTableData() {
-            // Randomize traffic sources table
-            document.querySelectorAll('.traffic-sources tbody tr').forEach(row => {
-                const valueCell = row.querySelector('td:nth-child(2)');
-                if (valueCell) {
-                    valueCell.textContent = formatNumber(randomInt(1000, 8000));
-                }
-            });
-            
-            // Randomize page destinations table
-            document.querySelectorAll('.page-destinations tbody tr').forEach(row => {
-                const valueCell = row.querySelector('td:nth-child(2)');
-                if (valueCell) {
-                    valueCell.textContent = formatNumber(randomInt(1000, 10000));
-                }
-            });
-            
-            // Randomize outcomes table
-            document.querySelectorAll('.outcomes tbody tr').forEach(row => {
-                const valueCell = row.querySelector('td:nth-child(2)');
-                if (valueCell) {
-                    valueCell.textContent = formatNumber(randomInt(500, 15000));
-                }
-            });
-            
-            console.log('Table data randomized');
-        }
-        
-        // Function to reset data to original values
-        function resetData() {
-            if (!originalData) return;
-            
-            // Reset JSON data
+        // Function to update JSON data with new context
+        function updateJsonData(data) {
             const dataElement = document.getElementById('sankey-data');
             if (dataElement) {
-                dataElement.textContent = JSON.stringify(originalData, null, 4);
+                dataElement.textContent = JSON.stringify(data, null, 4);
             }
+        }
+        
+        // Function to dynamically create/update HTML tables with new variable layer structure
+        function updateTableData(data, context) {
+            // Remove existing table sections (except the first one which we'll keep for reference)
+            const existingTables = document.querySelectorAll('.data-section');
+            existingTables.forEach((section, index) => {
+                if (section.querySelector('table[data-sankey-layer]')) {
+                    section.remove();
+                }
+            });
             
-            // Reset table data by reloading the page
-            window.location.reload();
+            // Find the JSON data section to insert tables after it
+            const jsonSection = document.querySelector('#sankey-data').parentNode;
+            
+            // Create tables for each layer
+            context.layers.forEach((layerNodes, layerIndex) => {
+                const layerName = layerIndex === 0 ? 'Sources' : 
+                                layerIndex === context.layers.length - 1 ? 'Outcomes' : 
+                                `Layer ${layerIndex + 1}`;
+                
+                // Create table section
+                const tableSection = document.createElement('div');
+                tableSection.className = 'data-section';
+                
+                const heading = document.createElement('h3');
+                heading.textContent = `${layerName}`;
+                tableSection.appendChild(heading);
+                
+                // Create table
+                const table = document.createElement('table');
+                table.className = layerIndex === 0 ? 'traffic-sources' : 
+                                 layerIndex === context.layers.length - 1 ? 'outcomes' : 
+                                 `layer-${layerIndex}`;
+                table.setAttribute('data-sankey-layer', layerIndex);
+                
+                // Create table header
+                const thead = document.createElement('thead');
+                const headerRow = document.createElement('tr');
+                const nameHeader = document.createElement('th');
+                nameHeader.textContent = layerIndex === 0 ? 'Source' : 
+                                       layerIndex === context.layers.length - 1 ? 'Outcome' : 
+                                       'Item';
+                const countHeader = document.createElement('th');
+                countHeader.textContent = layerIndex === 0 ? 'Visitors' : 'Count';
+                headerRow.appendChild(nameHeader);
+                headerRow.appendChild(countHeader);
+                thead.appendChild(headerRow);
+                table.appendChild(thead);
+                
+                // Create table body
+                const tbody = document.createElement('tbody');
+                layerNodes.forEach((nodeName, nodeIndex) => {
+                    const row = document.createElement('tr');
+                    const nodeId = data.nodes.find(n => n.name === nodeName)?.id || 0;
+                    row.setAttribute('data-node-id', nodeId);
+                    
+                    const nameCell = document.createElement('td');
+                    nameCell.textContent = nodeName;
+                    const countCell = document.createElement('td');
+                    countCell.textContent = formatNumber(randomInt(500, 12000));
+                    
+                    row.appendChild(nameCell);
+                    row.appendChild(countCell);
+                    tbody.appendChild(row);
+                });
+                table.appendChild(tbody);
+                tableSection.appendChild(table);
+                
+                // Insert after JSON section
+                jsonSection.parentNode.insertBefore(tableSection, jsonSection.nextSibling);
+            });
         }
         
         // Set up event listeners
         document.addEventListener('DOMContentLoaded', function() {
             const randomizeBtn = document.getElementById('randomize-data');
-            const resetBtn = document.getElementById('reset-data');
             
             if (randomizeBtn) {
                 randomizeBtn.addEventListener('click', function() {
                     // Add visual feedback
                     randomizeBtn.disabled = true;
-                    randomizeBtn.textContent = 'Randomizing...';
+                    randomizeBtn.textContent = 'Generating...';
                     
                     setTimeout(() => {
-                        randomizeJsonData();
-                        randomizeTableData();
+                        // Generate completely new context and data
+                        const newData = generateNewContextData();
+                        
+                        // Update both JSON and table data
+                        updateJsonData(newData);
+                        updateTableData(newData, newData.context);
                         
                         // Update button
                         randomizeBtn.disabled = false;
-                        randomizeBtn.textContent = '🎲 Randomize Page Data';
+                        randomizeBtn.textContent = '🎲 Generate New Context & Data';
                         
                         // Show success message
                         const message = document.createElement('div');
                         message.style.cssText = 'background: #4caf50; color: white; padding: 10px; border-radius: 4px; margin-top: 10px; text-align: center;';
-                        message.textContent = '✅ Data randomized! Use "Refresh from Page" in the SankeyStone extension.';
+                        message.textContent = `✅ Generated ${newData.context.name}! Use "Refresh from Page" in SankeyStone.`;
                         
-                        const controlsSection = document.querySelector('.data-section h3').parentNode;
+                        const controlsSection = randomizeBtn.parentNode;
                         controlsSection.appendChild(message);
                         
                         // Remove message after 5 seconds
@@ -336,13 +555,7 @@
                             message.remove();
                         }, 5000);
                         
-                    }, 300);
-                });
-            }
-            
-            if (resetBtn) {
-                resetBtn.addEventListener('click', function() {
-                    resetData();
+                    }, 500);
                 });
             }
         });

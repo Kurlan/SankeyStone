@@ -94,18 +94,54 @@ function generateRandomData() {
 // Initial data
 let currentData = generateRandomData();
 
-// Color palette
-const colors = [
-    "#3498db", "#e74c3c", "#2ecc71", "#f39c12", 
-    "#9b59b6", "#34495e", "#1abc9c", "#e67e22"
-];
+// Color palettes for different styles
+const colorPalettes = {
+    classic: [
+        "#3498db", "#e74c3c", "#2ecc71", "#f39c12", 
+        "#9b59b6", "#34495e", "#1abc9c", "#e67e22"
+    ],
+    ocean: [
+        "#006994", "#13A8A8", "#52C7B8", "#A4E2C6",
+        "#0891b2", "#0e7490", "#155e75", "#164e63"
+    ],
+    sunset: [
+        "#FF6B6B", "#FF8E53", "#FF6B9D", "#C44569",
+        "#F8B500", "#FF7675", "#FD79A8", "#E84393"
+    ],
+    forest: [
+        "#27AE60", "#2ECC71", "#58D68D", "#82E0AA",
+        "#16A085", "#48C9B0", "#76D7C4", "#A3E4D7"
+    ],
+    monochrome: [
+        "#2C3E50", "#34495E", "#5D6D7E", "#85929E",
+        "#ABB2B9", "#CCD1D1", "#D5DBDB", "#EAEDED"
+    ]
+};
+
+// Current color style index
+let currentStyleIndex = 0;
+const styleNames = Object.keys(colorPalettes);
+let currentColors = colorPalettes[styleNames[currentStyleIndex]];
+
+// Node style variations
+const nodeStyles = {
+    rounded: { rx: 3, ry: 3 },
+    square: { rx: 0, ry: 0 },
+    circular: { rx: 15, ry: 15 },
+    pill: { rx: 8, ry: 8 }
+};
+
+// Current node style index
+let currentNodeStyleIndex = 0;
+const nodeStyleNames = Object.keys(nodeStyles);
+let currentNodeStyle = nodeStyles[nodeStyleNames[currentNodeStyleIndex]];
 
 function getNodeColor(nodeName) {
     const hash = nodeName.split('').reduce((a, b) => {
         a = ((a << 5) - a) + b.charCodeAt(0);
         return a & a;
     }, 0);
-    return colors[Math.abs(hash) % colors.length];
+    return currentColors[Math.abs(hash) % currentColors.length];
 }
 
 // Create SVG elements using vanilla JavaScript
@@ -117,61 +153,182 @@ function createSVGElement(tag, attributes = {}) {
     return element;
 }
 
-// Calculate layout for Sankey diagram
+// Calculate layout for Sankey diagram with proportional node heights
 function calculateSankeyLayout(data) {
     const nodes = data.nodes.map(d => ({ ...d }));
     const links = data.links.map(d => ({ ...d }));
     
-    // Layout parameters
-    const nodeWidth = 30;
-    const nodePadding = 30;
-    const layerWidth = 180;
-    const diagramHeight = 280;
+    // Calculate node values first
+    nodes.forEach(node => {
+        const incomingValue = links
+            .filter(l => l.target === node.id)
+            .reduce((sum, l) => sum + l.value, 0);
+        const outgoingValue = links
+            .filter(l => l.source === node.id)
+            .reduce((sum, l) => sum + l.value, 0);
+        
+        node.value = Math.max(incomingValue, outgoingValue) || 0;
+    });
+    
+    // Find min and max values for normalization
+    const nodeValues = nodes.map(n => n.value).filter(v => v > 0);
+    const minValue = Math.min(...nodeValues);
+    const maxValue = Math.max(...nodeValues);
     
     // Group nodes by layer
     const layers = [...new Set(nodes.map(d => d.layer))].sort();
+    const numLayers = layers.length;
+    
+    // Dynamic layout parameters
+    const nodeWidth = 30;
+    const minNodeHeight = 20; // Minimum height for readability
+    const maxNodeHeight = 100; // Reduced max height to allow more space for labels
+    const basePadding = 12; // Base padding between nodes
+    const labelHeight = 20; // Space needed for labels above nodes
+    const layerWidth = Math.max(140, 220 - numLayers * 10); // Increased layer width
+    const minDiagramHeight = 320; // Increased minimum height
+    
+    // Calculate proportional heights for each layer
+    const layerHeights = [];
+    let totalDiagramHeight = minDiagramHeight;
     
     layers.forEach((layer, layerIndex) => {
         const layerNodes = nodes.filter(d => d.layer === layer);
-        const nodeHeight = (diagramHeight - (layerNodes.length - 1) * nodePadding) / layerNodes.length;
         
+        // Calculate proportional heights for nodes in this layer
+        layerNodes.forEach(node => {
+            if (node.value === 0) {
+                node.height = minNodeHeight;
+            } else {
+                // Normalize value to a height between min and max
+                const normalizedValue = (node.value - minValue) / (maxValue - minValue);
+                node.height = Math.round(minNodeHeight + (normalizedValue * (maxNodeHeight - minNodeHeight)));
+            }
+        });
+        
+        // Calculate spacing needed between nodes to prevent label overlap
+        let dynamicPadding = basePadding;
+        for (let i = 0; i < layerNodes.length - 1; i++) {
+            const currentNodeHeight = layerNodes[i].height;
+            const nextNodeHeight = layerNodes[i + 1].height;
+            // Ensure there's enough space for labels above nodes
+            const requiredPadding = Math.max(basePadding, labelHeight + 4);
+            dynamicPadding = Math.max(dynamicPadding, requiredPadding);
+        }
+        
+        // Calculate total height needed for this layer with dynamic padding
+        const layerTotalHeight = layerNodes.reduce((sum, node) => sum + node.height, 0) + 
+                                (layerNodes.length - 1) * dynamicPadding + labelHeight; // Add space for top labels
+        layerHeights[layerIndex] = layerTotalHeight;
+    });
+    
+    // Use the tallest layer to determine diagram height
+    const maxLayerHeight = Math.max(...layerHeights);
+    const diagramHeight = Math.max(minDiagramHeight, maxLayerHeight + 80); // Add some margin
+    
+    // Calculate required width
+    const diagramWidth = Math.max(400, (numLayers - 1) * layerWidth + nodeWidth + 100);
+    
+    // Position nodes within each layer with proper spacing
+    layers.forEach((layer, layerIndex) => {
+        const layerNodes = nodes.filter(d => d.layer === layer);
+        const layerTotalHeight = layerHeights[layerIndex];
+        
+        // Calculate dynamic padding for this layer
+        let dynamicPadding = basePadding;
+        for (let i = 0; i < layerNodes.length - 1; i++) {
+            const requiredPadding = Math.max(basePadding, labelHeight + 4);
+            dynamicPadding = Math.max(dynamicPadding, requiredPadding);
+        }
+        
+        // Center the layer vertically
+        const layerStartY = (diagramHeight - layerTotalHeight) / 2 + labelHeight + 20;
+        
+        let currentY = layerStartY;
         layerNodes.forEach((node, nodeIndex) => {
-            node.x = layerIndex * layerWidth + 20;
-            node.y = nodeIndex * (nodeHeight + nodePadding) + 20;
+            node.x = layerIndex * layerWidth + 50; // Add left margin
+            node.y = currentY;
             node.width = nodeWidth;
-            node.height = Math.max(nodeHeight, 40);
+            // Height was already calculated above
             
-            // Calculate node values
-            const incomingValue = links
-                .filter(l => l.target === node.id)
-                .reduce((sum, l) => sum + l.value, 0);
-            const outgoingValue = links
-                .filter(l => l.source === node.id)
-                .reduce((sum, l) => sum + l.value, 0);
-            
-            node.value = Math.max(incomingValue, outgoingValue) || 0;
+            currentY += node.height + dynamicPadding;
         });
     });
     
-    // Calculate link paths
+    // Calculate link heights and stacking positions
     links.forEach(link => {
         const sourceNode = nodes.find(n => n.id === link.source);
         const targetNode = nodes.find(n => n.id === link.target);
         
         link.sourceNode = sourceNode;
         link.targetNode = targetNode;
-        
-        // Simple curved path
-        const x1 = sourceNode.x + sourceNode.width;
-        const y1 = sourceNode.y + sourceNode.height / 2;
-        const x2 = targetNode.x;
-        const y2 = targetNode.y + targetNode.height / 2;
-        const cx = (x1 + x2) / 2;
-        
-        link.path = `M${x1},${y1} C${cx},${y1} ${cx},${y2} ${x2},${y2}`;
     });
     
-    return { nodes, links };
+    // Calculate proportional link heights and stacking positions
+    nodes.forEach(node => {
+        const outgoingLinks = links.filter(l => l.source === node.id);
+        const incomingLinks = links.filter(l => l.target === node.id);
+        
+        // Calculate outgoing link heights and positions
+        const totalOutgoingValue = outgoingLinks.reduce((sum, l) => sum + l.value, 0);
+        let currentOutgoingY = 0;
+        
+        outgoingLinks.forEach(link => {
+            const linkHeightRatio = totalOutgoingValue > 0 ? link.value / totalOutgoingValue : 0;
+            link.sourceHeight = linkHeightRatio * node.height;
+            link.sourceY1 = currentOutgoingY;
+            link.sourceY2 = currentOutgoingY + link.sourceHeight;
+            currentOutgoingY += link.sourceHeight;
+        });
+        
+        // Calculate incoming link heights and positions
+        const totalIncomingValue = incomingLinks.reduce((sum, l) => sum + l.value, 0);
+        let currentIncomingY = 0;
+        
+        incomingLinks.forEach(link => {
+            const linkHeightRatio = totalIncomingValue > 0 ? link.value / totalIncomingValue : 0;
+            link.targetHeight = linkHeightRatio * node.height;
+            link.targetY1 = currentIncomingY;
+            link.targetY2 = currentIncomingY + link.targetHeight;
+            currentIncomingY += link.targetHeight;
+        });
+    });
+    
+    // Generate SVG paths for stacked links
+    links.forEach(link => {
+        const sourceNode = link.sourceNode;
+        const targetNode = link.targetNode;
+        
+        // Source connection points (right side of source node)
+        const x1 = sourceNode.x + sourceNode.width;
+        const sy1 = sourceNode.y + link.sourceY1;
+        const sy2 = sourceNode.y + link.sourceY2;
+        
+        // Target connection points (left side of target node)
+        const x2 = targetNode.x;
+        const ty1 = targetNode.y + link.targetY1;
+        const ty2 = targetNode.y + link.targetY2;
+        
+        // Control points for smooth curves
+        const cx1 = x1 + (x2 - x1) * 0.5;
+        const cx2 = x2 - (x2 - x1) * 0.5;
+        
+        // Create a path that forms a "ribbon" between the nodes
+        // Start at top of source link, curve to top of target link,
+        // then to bottom of target link, curve back to bottom of source link, and close
+        const path = [
+            `M${x1},${sy1}`, // Move to top of source link
+            `C${cx1},${sy1} ${cx2},${ty1} ${x2},${ty1}`, // Curve to top of target link
+            `L${x2},${ty2}`, // Line to bottom of target link
+            `C${cx2},${ty2} ${cx1},${sy2} ${x1},${sy2}`, // Curve back to bottom of source link
+            `Z` // Close the path
+        ].join(' ');
+        
+        link.path = path;
+        link.linkHeight = Math.max(link.sourceHeight, link.targetHeight, 2); // For stroke width reference
+    });
+    
+    return { nodes, links, dimensions: { width: diagramWidth, height: diagramHeight + 40 } };
 }
 
 function createSankeyDiagram(data) {
@@ -190,36 +347,55 @@ function createSankeyDiagram(data) {
         // Hide loading message
         loadingDiv.style.display = 'none';
         
-        // Set SVG dimensions
-        svg.setAttribute('width', '568');
-        svg.setAttribute('height', '350');
-        svg.setAttribute('viewBox', '0 0 568 350');
-        
-        // Calculate layout
+        // Calculate layout first to get dynamic dimensions
         const graph = calculateSankeyLayout(data);
         
         console.log('Layout calculated:', graph);
+        console.log('Dynamic dimensions:', graph.dimensions);
+        
+        // Set SVG dimensions based on calculated layout
+        const { width: diagramWidth, height: diagramHeight } = graph.dimensions;
+        
+        // Ensure the SVG container can accommodate the diagram
+        const containerMaxWidth = 550; // Leave some margin for the popup
+        const containerMaxHeight = 400;
+        
+        // Scale down if necessary while maintaining aspect ratio
+        const scaleX = diagramWidth > containerMaxWidth ? containerMaxWidth / diagramWidth : 1;
+        const scaleY = diagramHeight > containerMaxHeight ? containerMaxHeight / diagramHeight : 1;
+        const scale = Math.min(scaleX, scaleY);
+        
+        const finalWidth = Math.ceil(diagramWidth * scale);
+        const finalHeight = Math.ceil(diagramHeight * scale);
+        
+        svg.setAttribute('width', finalWidth);
+        svg.setAttribute('height', finalHeight);
+        svg.setAttribute('viewBox', `0 0 ${diagramWidth} ${diagramHeight}`);
+        svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+        
+        // Adjust container height if needed
+        const container = document.getElementById('sankey-container');
+        container.style.height = `${finalHeight + 20}px`;
         
         // Find max value for stroke width scaling
         const maxValue = Math.max(...graph.links.map(l => l.value));
         
-        // Create links
+        // Create links as filled ribbons
         graph.links.forEach(link => {
             const path = createSVGElement('path', {
                 d: link.path,
-                stroke: getNodeColor(link.sourceNode.name),
-                'stroke-width': Math.max(2, (link.value / maxValue) * 15),
-                'stroke-opacity': '0.6',
-                fill: 'none',
+                fill: getNodeColor(link.sourceNode.name),
+                'fill-opacity': '0.6',
+                stroke: 'none',
                 class: 'sankey-link'
             });
             
             // Add hover effect
             path.addEventListener('mouseover', function() {
-                this.setAttribute('stroke-opacity', '0.8');
+                this.setAttribute('fill-opacity', '0.8');
             });
             path.addEventListener('mouseout', function() {
-                this.setAttribute('stroke-opacity', '0.6');
+                this.setAttribute('fill-opacity', '0.6');
             });
             
             // Add tooltip
@@ -238,14 +414,15 @@ function createSankeyDiagram(data) {
                 transform: `translate(${node.x}, ${node.y})`
             });
             
-            // Create rectangle
+            // Create rectangle with current node style
             const rect = createSVGElement('rect', {
                 width: node.width,
                 height: node.height,
                 fill: getNodeColor(node.name),
                 stroke: '#333',
                 'stroke-width': '1',
-                rx: '3'
+                rx: currentNodeStyle.rx,
+                ry: currentNodeStyle.ry
             });
             
             // Create label
@@ -277,7 +454,7 @@ function createSankeyDiagram(data) {
             svg.appendChild(nodeGroup);
         });
         
-        console.log('Pure JavaScript Sankey diagram created successfully');
+        console.log(`Pure JavaScript Sankey diagram created successfully (${finalWidth}x${finalHeight})`);
         
     } catch (error) {
         console.error('Error creating Sankey diagram:', error);
@@ -326,21 +503,51 @@ function getPageData() {
     });
 }
 
-// Function to update the regenerate button text and state
-function updateRegenerateButton(hasPageData) {
-    const button = document.getElementById('regenerate-btn');
-    if (hasPageData) {
-        button.textContent = 'Refresh from Page';
-        button.title = 'Extract fresh data from the current webpage';
-    } else {
-        button.textContent = 'Generate Random';
-        button.title = 'Generate new random data (no page data found)';
-    }
+// Function to cycle to the next color style
+function cycleToNextColorStyle() {
+    currentStyleIndex = (currentStyleIndex + 1) % styleNames.length;
+    currentColors = colorPalettes[styleNames[currentStyleIndex]];
+    
+    console.log(`Switched to color style: ${styleNames[currentStyleIndex]}`);
+    
+    // Update button text to show current style
+    updateColorButton();
+}
+
+// Function to cycle to the next node style
+function cycleToNextNodeStyle() {
+    currentNodeStyleIndex = (currentNodeStyleIndex + 1) % nodeStyleNames.length;
+    currentNodeStyle = nodeStyles[nodeStyleNames[currentNodeStyleIndex]];
+    
+    console.log(`Switched to node style: ${nodeStyleNames[currentNodeStyleIndex]}`);
+    
+    // Update button text to show current style
+    updateNodeStyleButton();
+}
+
+// Function to update the color button text
+function updateColorButton() {
+    const button = document.getElementById('color-btn');
+    const currentStyleName = styleNames[currentStyleIndex];
+    const nextStyleName = styleNames[(currentStyleIndex + 1) % styleNames.length];
+    
+    button.textContent = `${nextStyleName.charAt(0).toUpperCase() + nextStyleName.slice(1)} Colors`;
+    button.title = `Currently using ${currentStyleName} colors. Click to switch to ${nextStyleName} colors.`;
+}
+
+// Function to update the node style button text
+function updateNodeStyleButton() {
+    const button = document.getElementById('style-btn');
+    const currentStyleName = nodeStyleNames[currentNodeStyleIndex];
+    const nextStyleName = nodeStyleNames[(currentNodeStyleIndex + 1) % nodeStyleNames.length];
+    
+    button.textContent = `${nextStyleName.charAt(0).toUpperCase() + nextStyleName.slice(1)} Nodes`;
+    button.title = `Currently using ${currentStyleName} node style. Click to switch to ${nextStyleName} nodes.`;
 }
 
 // Initialize when DOM is loaded
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('SankeyStone popup loaded - webpage data extraction version');
+    console.log('SankeyStone popup loaded - style cycling version');
     
     // Show loading while we try to get page data
     document.getElementById('loading').textContent = 'Extracting data from page...';
@@ -356,51 +563,54 @@ document.addEventListener('DOMContentLoaded', function() {
             console.log('Page data nodes:', pageData.nodes?.length || 0);
             console.log('Page data links:', pageData.links?.length || 0);
             currentData = pageData;
-            updateRegenerateButton(true);
         } else {
             // Fall back to random data
             console.log('❌ No page data found, using random data');
             currentData = generateRandomData();
-            updateRegenerateButton(false);
         }
+        
+        // Set initial button text
+        updateColorButton();
+        updateNodeStyleButton();
         
         // Create initial diagram
         createSankeyDiagram(currentData);
     }).catch(error => {
         console.error('❌ Error during initialization:', error);
         currentData = generateRandomData();
-        updateRegenerateButton(false);
+        updateColorButton();
+        updateNodeStyleButton();
         createSankeyDiagram(currentData);
     });
     
-    // Add event listener for regenerate button
-    document.getElementById('regenerate-btn').addEventListener('click', function() {
-        console.log('Regenerate button clicked');
+    // Add event listener for color cycling button
+    document.getElementById('color-btn').addEventListener('click', function() {
+        console.log('Color cycle button clicked');
         
         // Show loading
-        document.getElementById('loading').textContent = 'Refreshing data...';
+        document.getElementById('loading').textContent = 'Applying new colors...';
         document.getElementById('loading').style.display = 'block';
         
-        // Try to get fresh data from page
-        getPageData().then(freshPageData => {
-            if (freshPageData) {
-                console.log('Using fresh data from webpage');
-                currentData = freshPageData;
-                updateRegenerateButton(true);
-            } else {
-                console.log('No page data found, generating new random data');
-                currentData = generateRandomData();
-                updateRegenerateButton(false);
-            }
-            
-            // Create diagram with new data
-            createSankeyDiagram(currentData);
-        }).catch(error => {
-            console.error('Error during regeneration:', error);
-            currentData = generateRandomData();
-            updateRegenerateButton(false);
-            createSankeyDiagram(currentData);
-        });
+        // Cycle to next color style
+        cycleToNextColorStyle();
+        
+        // Regenerate diagram with same data but new colors
+        createSankeyDiagram(currentData);
+    });
+    
+    // Add event listener for node style cycling button
+    document.getElementById('style-btn').addEventListener('click', function() {
+        console.log('Node style cycle button clicked');
+        
+        // Show loading
+        document.getElementById('loading').textContent = 'Applying new node style...';
+        document.getElementById('loading').style.display = 'block';
+        
+        // Cycle to next node style
+        cycleToNextNodeStyle();
+        
+        // Regenerate diagram with same data but new node style
+        createSankeyDiagram(currentData);
     });
 });
 

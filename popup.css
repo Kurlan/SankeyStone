@@ -68,9 +68,10 @@ main {
 .controls {
     display: flex;
     justify-content: center;
+    gap: 12px;
 }
 
-#regenerate-btn {
+.controls button {
     background-color: #1a73e8;
     color: white;
     border: none;
@@ -79,14 +80,27 @@ main {
     font-size: 14px;
     cursor: pointer;
     transition: background-color 0.2s;
+    min-width: 120px;
 }
 
-#regenerate-btn:hover {
+.controls button:hover {
     background-color: #1557b0;
 }
 
-#regenerate-btn:active {
+.controls button:active {
     background-color: #0d47a1;
+}
+
+#style-btn {
+    background-color: #34a853;
+}
+
+#style-btn:hover {
+    background-color: #137333;
+}
+
+#style-btn:active {
+    background-color: #0d652d;
 }
 
 /* Sankey diagram specific styles */

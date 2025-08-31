@@ -148,27 +148,41 @@ function extractSankeyTableData() {
 
 // Function to respond to messages from the extension popup
 function handleMessage(request, sender, sendResponse) {
-    console.log('Received message from popup:', request);
+    console.log('🔍 Content Script: Received message from popup:', request);
+    console.log('🔍 Content Script: Current URL:', window.location.href);
+    console.log('🔍 Content Script: Document ready state:', document.readyState);
     
     if (request.action === 'getSankeyData') {
+        console.log('📊 Content Script: Starting to extract Sankey data...');
+        
         // First try to extract JSON data, then fall back to table data
+        console.log('🔍 Content Script: Trying JSON extraction...');
         const jsonData = extractSankeyJsonData();
         if (jsonData) {
+            console.log('✅ Content Script: Successfully extracted JSON data:', jsonData);
             sendResponse({ success: true, data: jsonData });
             return;
         }
+        console.log('❌ Content Script: No JSON data found');
         
+        console.log('🔍 Content Script: Trying table extraction...');
         const tableData = extractSankeyTableData();
         if (tableData) {
+            console.log('✅ Content Script: Successfully extracted table data:', tableData);
             sendResponse({ success: true, data: tableData });
             return;
         }
+        console.log('❌ Content Script: No table data found');
         
         // If no data found, send error
+        console.log('❌ Content Script: No Sankey data found on this page');
         sendResponse({ 
             success: false, 
             error: 'No Sankey data found on this page' 
         });
+    } else {
+        console.log('❓ Content Script: Unknown action:', request.action);
+        sendResponse({ success: false, error: 'Unknown action' });
     }
 }
 

@@ -305,6 +305,98 @@ main {
     margin-left: 4px;
 }
 
+/* Status badges for providers */
+.coming-soon {
+    display: inline-block;
+    background-color: #fff3e0;
+    color: #e65100;
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 6px;
+    border-radius: 3px;
+    margin-left: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.available {
+    display: inline-block;
+    background-color: #e8f5e8;
+    color: #2e7d32;
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 6px;
+    border-radius: 3px;
+    margin-left: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Future support notice */
+.future-support-notice {
+    background-color: #f3f4f6;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    padding: 12px;
+    margin-bottom: 16px;
+}
+
+.future-support-notice p {
+    margin: 0;
+    font-size: 13px;
+    color: #374151;
+    line-height: 1.4;
+}
+
+/* Disabled provider styling */
+.provider-disabled {
+    opacity: 0.6;
+    position: relative;
+}
+
+.provider-disabled::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(255, 255, 255, 0.3);
+    border-radius: 4px;
+    pointer-events: none;
+    z-index: 1;
+}
+
+.provider-disabled input[disabled] {
+    background-color: #f8f9fa;
+    color: #6c757d;
+    cursor: not-allowed;
+    border-color: #e9ecef;
+}
+
+.provider-disabled button[disabled] {
+    opacity: 0.5;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+.provider-disabled .help-text {
+    color: #6c757d;
+    font-style: italic;
+}
+
+.provider-disabled .help-text a {
+    color: #6c757d;
+    pointer-events: none;
+    text-decoration: none;
+}
+
+/* Disabled options in select */
+select option:disabled {
+    color: #6c757d;
+    background-color: #f8f9fa;
+}
+
 .input-wrapper {
     position: relative;
     display: flex;

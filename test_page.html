@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Page with Sankey Data</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-bottom: 20px;
+        }
+        
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        
+        th {
+            background-color: #f2f2f2;
+        }
+        
+        .layer {
+            margin-bottom: 30px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Test Page for SankeyStone Extension</h1>
+    <p>This page contains sample Sankey diagram data for testing the extension's refresh functionality.</p>
+
+    <!-- JSON Data Method -->
+    <h2>Method 1: JSON Data in Script Tag</h2>
+    <script type="application/json" id="sankey-data">
+    {
+        "nodes": [
+            {"id": 0, "name": "Website Traffic", "layer": 0},
+            {"id": 1, "name": "Social Media", "layer": 0}, 
+            {"id": 2, "name": "Email Campaign", "layer": 0},
+            {"id": 3, "name": "Product Pages", "layer": 1},
+            {"id": 4, "name": "Blog Posts", "layer": 1},
+            {"id": 5, "name": "Contact Page", "layer": 1},
+            {"id": 6, "name": "Purchases", "layer": 2},
+            {"id": 7, "name": "Newsletter Signups", "layer": 2},
+            {"id": 8, "name": "Exit", "layer": 2}
+        ],
+        "links": [
+            {"source": 0, "target": 3, "value": 2500},
+            {"source": 0, "target": 4, "value": 1800},
+            {"source": 0, "target": 5, "value": 200},
+            {"source": 1, "target": 3, "value": 1200},
+            {"source": 1, "target": 4, "value": 800},
+            {"source": 2, "target": 3, "value": 600},
+            {"source": 2, "target": 7, "value": 400},
+            {"source": 3, "target": 6, "value": 800},
+            {"source": 3, "target": 8, "value": 3500},
+            {"source": 4, "target": 6, "value": 300},
+            {"source": 4, "target": 7, "value": 500},
+            {"source": 4, "target": 8, "value": 1800},
+            {"source": 5, "target": 7, "value": 150},
+            {"source": 5, "target": 8, "value": 50}
+        ]
+    }
+    </script>
+
+    <!-- Table Data Method -->
+    <h2>Method 2: Table Data with Sankey Attributes</h2>
+    
+    <div class="layer">
+        <h3>Layer 0: Traffic Sources</h3>
+        <table data-sankey-layer="0">
+            <thead>
+                <tr>
+                    <th>Source</th>
+                    <th>Traffic Volume</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr data-node-id="0">
+                    <td>Direct Traffic</td>
+                    <td>4,500</td>
+                </tr>
+                <tr data-node-id="1">
+                    <td>Social Media</td>
+                    <td>2,000</td>
+                </tr>
+                <tr data-node-id="2">
+                    <td>Email Marketing</td>
+                    <td>1,000</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    
+    <div class="layer">
+        <h3>Layer 1: Page Categories</h3>
+        <table data-sankey-layer="1">
+            <thead>
+                <tr>
+                    <th>Page Type</th>
+                    <th>Visits</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr data-node-id="3">
+                    <td>Product Pages</td>
+                    <td>4,300</td>
+                </tr>
+                <tr data-node-id="4">
+                    <td>Blog Content</td>
+                    <td>2,600</td>
+                </tr>
+                <tr data-node-id="5">
+                    <td>Support Pages</td>
+                    <td>600</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    
+    <div class="layer">
+        <h3>Layer 2: Outcomes</h3>
+        <table data-sankey-layer="2">
+            <thead>
+                <tr>
+                    <th>Outcome</th>
+                    <th>Count</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr data-node-id="6">
+                    <td>Conversion</td>
+                    <td>1,100</td>
+                </tr>
+                <tr data-node-id="7">
+                    <td>Newsletter Signup</td>
+                    <td>1,050</td>
+                </tr>
+                <tr data-node-id="8">
+                    <td>Bounce</td>
+                    <td>5,350</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <p><strong>Instructions:</strong> Open the SankeyStone extension and click the "🔄 Refresh from Page" button to extract this data.</p>
+    
+    <script>
+        console.log('Test page loaded with Sankey data');
+        console.log('JSON data available:', !!document.getElementById('sankey-data'));
+        console.log('Table data available:', document.querySelectorAll('table[data-sankey-layer]').length, 'tables');
+    </script>
+</body>
+</html>

@@ -5,7 +5,8 @@
   "description": "A Chrome extension that creates Sankey diagrams from page data",
   "permissions": [
     "activeTab",
-    "scripting"
+    "scripting",
+    "storage"
   ],
   "action": {
     "default_popup": "popup.html",

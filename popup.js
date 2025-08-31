@@ -306,6 +306,139 @@ function createSVGElement(tag, attributes = {}) {
     return element;
 }
 
+// Function to generate contextual titles based on data patterns
+function generateDiagramTitle(data) {
+    const nodes = data.nodes || [];
+    const links = data.links || [];
+    
+    if (nodes.length === 0) {
+        return "Data Flow Diagram";
+    }
+    
+    // Analyze data to determine context
+    const layers = [...new Set(nodes.map(n => n.layer))].sort();
+    const numLayers = layers.length;
+    
+    // Get nodes from first layer (sources) and last layer (outcomes)
+    const sourceNodes = nodes.filter(n => n.layer === Math.min(...layers));
+    const outcomeNodes = nodes.filter(n => n.layer === Math.max(...layers));
+    
+    // Detect common business patterns by analyzing node names
+    const nodeNames = nodes.map(n => n.name.toLowerCase());
+    const allText = nodeNames.join(' ');
+    
+    // Define context detection patterns
+    const contexts = {
+        traffic: /traffic|visit|click|page|website|search|social|direct|organic/,
+        ecommerce: /purchase|cart|checkout|product|order|buy|sale|shop|catalog/,
+        marketing: /campaign|ad|email|conversion|lead|funnel|channel|source/,
+        education: /course|student|enrollment|learn|class|education|training|study/,
+        healthcare: /patient|treatment|diagnosis|appointment|medical|health|care|hospital/,
+        finance: /account|loan|investment|bank|financial|credit|payment|transaction/,
+        saas: /trial|subscription|feature|user|dashboard|signup|onboard|upgrade/,
+        manufacturing: /production|assembly|quality|supplier|manufacturing|material|process/,
+        retail: /store|customer|browse|staff|purchase|return|inventory|sales/,
+        media: /content|article|video|view|share|subscribe|like|comment|follow/
+    };
+    
+    // Detect primary context
+    let detectedContext = 'flow';
+    let maxMatches = 0;
+    
+    for (const [context, pattern] of Object.entries(contexts)) {
+        const matches = (allText.match(pattern) || []).length;
+        if (matches > maxMatches) {
+            maxMatches = matches;
+            detectedContext = context;
+        }
+    }
+    
+    // Calculate total flow volume
+    const totalVolume = links.reduce((sum, link) => sum + (link.value || 0), 0);
+    const formattedVolume = totalVolume.toLocaleString();
+    
+    // Generate contextual titles based on detected patterns
+    const titleTemplates = {
+        traffic: [
+            `Website Traffic Flow Analysis (${formattedVolume} visitors)`,
+            `Traffic Source Distribution & Conversion`,
+            `User Journey Flow Diagram`,
+            `Website Analytics Overview`
+        ],
+        ecommerce: [
+            `E-commerce Customer Journey (${formattedVolume} interactions)`,
+            `Sales Funnel Analysis`,
+            `Product Purchase Flow`,
+            `Online Shopping Behavior`
+        ],
+        marketing: [
+            `Marketing Campaign Performance (${formattedVolume} leads)`,
+            `Lead Generation & Conversion Funnel`,
+            `Channel Attribution Analysis`,
+            `Campaign Flow Analysis`
+        ],
+        education: [
+            `Student Enrollment Journey (${formattedVolume} students)`,
+            `Educational Platform Flow`,
+            `Learning Path Analysis`,
+            `Course Engagement Flow`
+        ],
+        healthcare: [
+            `Patient Care Pathway (${formattedVolume} patients)`,
+            `Healthcare Service Flow`,
+            `Treatment Process Analysis`,
+            `Patient Journey Mapping`
+        ],
+        finance: [
+            `Financial Service Flow (${formattedVolume} transactions)`,
+            `Banking Customer Journey`,
+            `Investment Process Flow`,
+            `Financial Product Analysis`
+        ],
+        saas: [
+            `SaaS User Onboarding Flow (${formattedVolume} users)`,
+            `Product Feature Adoption`,
+            `Subscription Journey Analysis`,
+            `User Engagement Flow`
+        ],
+        manufacturing: [
+            `Manufacturing Process Flow (${formattedVolume} units)`,
+            `Production Pipeline Analysis`,
+            `Supply Chain Flow`,
+            `Quality Control Process`
+        ],
+        retail: [
+            `Retail Customer Experience (${formattedVolume} customers)`,
+            `In-Store Journey Analysis`,
+            `Customer Behavior Flow`,
+            `Retail Sales Process`
+        ],
+        media: [
+            `Content Engagement Flow (${formattedVolume} interactions)`,
+            `Media Consumption Pattern`,
+            `Content Performance Analysis`,
+            `Audience Engagement Journey`
+        ],
+        flow: [
+            `Process Flow Diagram (${formattedVolume} items)`,
+            `Data Flow Analysis`,
+            `System Process Overview`,
+            `Workflow Visualization`
+        ]
+    };
+    
+    // Select appropriate title template
+    const templates = titleTemplates[detectedContext] || titleTemplates.flow;
+    
+    // Use simple selection based on number of layers
+    let titleIndex = 0;
+    if (numLayers >= 4) titleIndex = 3;
+    else if (numLayers === 3) titleIndex = 2;
+    else if (sourceNodes.length > 3) titleIndex = 1;
+    
+    return templates[titleIndex] || templates[0];
+}
+
 // Calculate layout for Sankey diagram with proportional node heights
 function calculateSankeyLayout(data) {
     const nodes = data.nodes.map(d => ({ ...d }));
@@ -364,10 +497,13 @@ function calculateSankeyLayout(data) {
         return layerNodes.reduce((sum, node) => sum + node.height, 0);
     }));
     
-    // Ensure we have enough space for the largest layer plus labels and margins
+    // Reserve space for title at the top
+    const titleHeight = 70; // Increased space for title and margin
+    
+    // Ensure we have enough space for the largest layer plus labels, title, and margins
     const diagramHeight = Math.max(
         minDiagramHeight, 
-        maxTotalNodesHeight + labelHeight * 3 + 100 // Extra space for labels, gaps, and margins
+        maxTotalNodesHeight + labelHeight * 3 + titleHeight + 100 // Extra space for title, labels, gaps, and margins
     );
     
     // Calculate required width
@@ -397,13 +533,14 @@ function calculateSankeyLayout(data) {
             // Multiple nodes - distribute evenly
             const gapSize = Math.max(basePadding, availableSpaceForGaps / (layerNodes.length - 1));
             
-            // Start from top with margin
-            let currentY = labelHeight + 20;
+            // Start from top with margin, accounting for title space
+            let currentY = labelHeight + 60; // Increased margin to account for title
             
-            // If we have too much space, center the whole layer
+            // If we have too much space, center the whole layer (but not above title area)
             const totalLayerHeight = totalNodesHeight + (layerNodes.length - 1) * gapSize;
+            const minStartY = 80; // Minimum Y position to avoid title overlap
             if (totalLayerHeight < availableHeight) {
-                currentY = (diagramHeight - totalLayerHeight) / 2 + labelHeight / 2;
+                currentY = Math.max(minStartY, (diagramHeight - totalLayerHeight) / 2 + labelHeight / 2);
             }
             
             layerNodes.forEach((node, nodeIndex) => {
@@ -539,6 +676,24 @@ function createSankeyDiagram(data) {
         const container = document.getElementById('sankey-container');
         container.style.height = `${finalHeight + 20}px`;
         
+        // Generate and add title
+        const diagramTitle = generateDiagramTitle(data);
+        console.log('Generated title:', diagramTitle);
+        
+        // Create title element
+        const titleElement = createSVGElement('text', {
+            x: diagramWidth / 2,
+            y: 30,
+            'text-anchor': 'middle',
+            'font-size': '16px',
+            'font-weight': '700',
+            'font-family': '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+            fill: '#1a1a1a',
+            class: 'sankey-title'
+        });
+        titleElement.textContent = diagramTitle;
+        svg.appendChild(titleElement);
+        
         // Find max value for stroke width scaling
         const maxValue = Math.max(...graph.links.map(l => l.value));
         
@@ -629,36 +784,88 @@ function createSankeyDiagram(data) {
 function getPageData() {
     return new Promise((resolve, reject) => {
         try {
+            console.log('🔍 getPageData: Starting to get data from current webpage...');
+            
             // Get the current active tab
             chrome.tabs.query({ active: true, currentWindow: true }, function(tabs) {
+                console.log('🔍 getPageData: chrome.tabs.query result:', tabs.length, 'tabs found');
+                
                 if (tabs.length === 0) {
-                    console.error('No active tab found');
+                    console.error('❌ getPageData: No active tab found');
                     resolve(null);
                     return;
                 }
                 
                 const tab = tabs[0];
-                console.log('Sending message to tab:', tab.id, tab.url);
+                console.log('🔍 getPageData: Active tab info:', {
+                    id: tab.id,
+                    url: tab.url,
+                    title: tab.title,
+                    status: tab.status
+                });
+                
+                // Check if the tab URL is supported
+                if (tab.url && (tab.url.startsWith('chrome://') || tab.url.startsWith('chrome-extension://'))) {
+                    console.warn('⚠️ getPageData: Cannot inject into chrome:// or extension pages');
+                    resolve(null);
+                    return;
+                }
+                
+                console.log('📤 getPageData: Sending message to content script...');
                 
                 // Send message to content script to extract data
                 chrome.tabs.sendMessage(tab.id, { action: 'getSankeyData' }, function(response) {
+                    console.log('📥 getPageData: Received response:', response);
+                    console.log('📥 getPageData: chrome.runtime.lastError:', chrome.runtime.lastError);
+                    
                     if (chrome.runtime.lastError) {
-                        console.error('Chrome runtime error:', chrome.runtime.lastError.message);
-                        resolve(null);
+                        console.error('❌ getPageData: Chrome runtime error:', chrome.runtime.lastError.message);
+                        
+                        // If content script not found, try to inject it manually
+                        if (chrome.runtime.lastError.message.includes('Receiving end does not exist')) {
+                            console.log('🔧 getPageData: Content script not found, trying to inject manually...');
+                            
+                            chrome.scripting.executeScript({
+                                target: { tabId: tab.id },
+                                files: ['content.js']
+                            }, function() {
+                                if (chrome.runtime.lastError) {
+                                    console.error('❌ getPageData: Failed to inject content script:', chrome.runtime.lastError.message);
+                                    resolve(null);
+                                } else {
+                                    console.log('✅ getPageData: Content script injected, retrying message...');
+                                    // Retry sending the message
+                                    setTimeout(() => {
+                                        chrome.tabs.sendMessage(tab.id, { action: 'getSankeyData' }, function(retryResponse) {
+                                            console.log('📥 getPageData: Retry response:', retryResponse);
+                                            if (retryResponse && retryResponse.success) {
+                                                console.log('✅ getPageData: Successfully extracted data after retry:', retryResponse.data);
+                                                resolve(retryResponse.data);
+                                            } else {
+                                                console.log('❌ getPageData: No data found after retry:', retryResponse ? retryResponse.error : 'No response');
+                                                resolve(null);
+                                            }
+                                        });
+                                    }, 500);
+                                }
+                            });
+                        } else {
+                            resolve(null);
+                        }
                         return;
                     }
                     
                     if (response && response.success) {
-                        console.log('Successfully extracted data from page:', response.data);
+                        console.log('✅ getPageData: Successfully extracted data from page:', response.data);
                         resolve(response.data);
                     } else {
-                        console.log('No data found on page:', response ? response.error : 'No response');
+                        console.log('❌ getPageData: No data found on page:', response ? response.error : 'No response');
                         resolve(null);
                     }
                 });
             });
         } catch (error) {
-            console.error('Error communicating with content script:', error);
+            console.error('❌ getPageData: Error communicating with content script:', error);
             resolve(null);
         }
     });
@@ -743,7 +950,10 @@ function refreshFromPage() {
             console.log('✅ Successfully refreshed data from webpage');
             console.log('New page data nodes:', pageData.nodes?.length || 0);
             console.log('New page data links:', pageData.links?.length || 0);
+            
+            // Update the global current data BEFORE creating the diagram
             currentData = pageData;
+            console.log('🔄 Updated currentData:', currentData);
             
             // Update the diagram with new data
             createSankeyDiagram(currentData);
@@ -804,7 +1014,16 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('color-dropdown').addEventListener('change', applyColorTheme);
     
     // Add event listener for refresh button
-    document.getElementById('refresh-btn').addEventListener('click', refreshFromPage);
+    const refreshBtn = document.getElementById('refresh-btn');
+    if (refreshBtn) {
+        console.log('✅ Refresh button found, adding event listener');
+        refreshBtn.addEventListener('click', function() {
+            console.log('🔄 Refresh button clicked!');
+            refreshFromPage();
+        });
+    } else {
+        console.error('❌ Refresh button not found in DOM!');
+    }
     
     // Add event listener for random theme button
     document.getElementById('random-btn').addEventListener('click', applyRandomTheme);
@@ -909,8 +1128,6 @@ const STORAGE_KEYS = {
     OPENAI_KEY: 'sankeystone_openai_key',
     ANTHROPIC_KEY: 'sankeystone_anthropic_key',
     GOOGLE_KEY: 'sankeystone_google_key',
-    HUGGINGFACE_KEY: 'sankeystone_huggingface_key',
-    COHERE_KEY: 'sankeystone_cohere_key',
     DEFAULT_PROVIDER: 'sankeystone_default_provider',
     AUTO_ANALYZE: 'sankeystone_auto_analyze'
 };
@@ -930,8 +1147,6 @@ async function loadSettings() {
         document.getElementById('openai-key').value = stored[STORAGE_KEYS.OPENAI_KEY] || '';
         document.getElementById('anthropic-key').value = stored[STORAGE_KEYS.ANTHROPIC_KEY] || '';
         document.getElementById('google-key').value = stored[STORAGE_KEYS.GOOGLE_KEY] || '';
-        document.getElementById('huggingface-key').value = stored[STORAGE_KEYS.HUGGINGFACE_KEY] || '';
-        document.getElementById('cohere-key').value = stored[STORAGE_KEYS.COHERE_KEY] || '';
         document.getElementById('default-provider').value = stored[STORAGE_KEYS.DEFAULT_PROVIDER] || '';
         document.getElementById('auto-analyze').checked = stored[STORAGE_KEYS.AUTO_ANALYZE] === true;
         
@@ -961,21 +1176,15 @@ async function saveSettings() {
             [STORAGE_KEYS.OPENAI_KEY]: document.getElementById('openai-key').value.trim(),
             [STORAGE_KEYS.ANTHROPIC_KEY]: document.getElementById('anthropic-key').value.trim(),
             [STORAGE_KEYS.GOOGLE_KEY]: document.getElementById('google-key').value.trim(),
-            [STORAGE_KEYS.HUGGINGFACE_KEY]: document.getElementById('huggingface-key').value.trim(),
-            [STORAGE_KEYS.COHERE_KEY]: document.getElementById('cohere-key').value.trim(),
             [STORAGE_KEYS.DEFAULT_PROVIDER]: document.getElementById('default-provider').value,
             [STORAGE_KEYS.AUTO_ANALYZE]: document.getElementById('auto-analyze').checked
         };
         
-        // Validate at least one API key is provided
-        const hasApiKey = dataToSave[STORAGE_KEYS.OPENAI_KEY] || 
-                         dataToSave[STORAGE_KEYS.ANTHROPIC_KEY] || 
-                         dataToSave[STORAGE_KEYS.GOOGLE_KEY] || 
-                         dataToSave[STORAGE_KEYS.HUGGINGFACE_KEY] || 
-                         dataToSave[STORAGE_KEYS.COHERE_KEY];
+        // Validate Claude API key is provided (only required provider)
+        const hasClaudeKey = dataToSave[STORAGE_KEYS.ANTHROPIC_KEY];
         
-        if (!hasApiKey) {
-            showStatusMessage('Please provide at least one API key.', 'error');
+        if (!hasClaudeKey) {
+            showStatusMessage('Please provide a Claude API key. Claude is currently the only supported provider.', 'error');
             return false;
         }
         
@@ -990,9 +1199,7 @@ async function saveSettings() {
             const providerKeyMap = {
                 'openai': STORAGE_KEYS.OPENAI_KEY,
                 'anthropic': STORAGE_KEYS.ANTHROPIC_KEY,
-                'google': STORAGE_KEYS.GOOGLE_KEY,
-                'huggingface': STORAGE_KEYS.HUGGINGFACE_KEY,
-                'cohere': STORAGE_KEYS.COHERE_KEY
+                'google': STORAGE_KEYS.GOOGLE_KEY
             };
             
             const requiredKey = providerKeyMap[dataToSave[STORAGE_KEYS.DEFAULT_PROVIDER]];
@@ -1066,9 +1273,7 @@ function updateDefaultProviderOptions() {
     const keys = {
         openai: document.getElementById('openai-key').value.trim(),
         anthropic: document.getElementById('anthropic-key').value.trim(),
-        google: document.getElementById('google-key').value.trim(),
-        huggingface: document.getElementById('huggingface-key').value.trim(),
-        cohere: document.getElementById('cohere-key').value.trim()
+        google: document.getElementById('google-key').value.trim()
     };
     
     // Enable/disable options based on available keys
@@ -1133,8 +1338,6 @@ function checkFormDirty() {
         [STORAGE_KEYS.OPENAI_KEY]: document.getElementById('openai-key').value.trim(),
         [STORAGE_KEYS.ANTHROPIC_KEY]: document.getElementById('anthropic-key').value.trim(),
         [STORAGE_KEYS.GOOGLE_KEY]: document.getElementById('google-key').value.trim(),
-        [STORAGE_KEYS.HUGGINGFACE_KEY]: document.getElementById('huggingface-key').value.trim(),
-        [STORAGE_KEYS.COHERE_KEY]: document.getElementById('cohere-key').value.trim(),
         [STORAGE_KEYS.DEFAULT_PROVIDER]: document.getElementById('default-provider').value,
         [STORAGE_KEYS.AUTO_ANALYZE]: document.getElementById('auto-analyze').checked
     };
@@ -1168,9 +1371,7 @@ function validateApiKey(provider, key) {
     const patterns = {
         openai: /^sk-[a-zA-Z0-9]{20,}$/,
         anthropic: /^sk-ant-[a-zA-Z0-9_-]+$/,
-        google: /^AI[a-zA-Z0-9_-]+$/,
-        huggingface: /^hf_[a-zA-Z0-9]{20,}$/,
-        cohere: /^[a-zA-Z0-9_-]{20,}$/
+        google: /^AI[a-zA-Z0-9_-]+$/
     };
     
     const pattern = patterns[provider];
@@ -1184,6 +1385,12 @@ async function testApiKey(provider) {
     const keyInput = document.getElementById(`${provider}-key`);
     const testBtn = document.querySelector(`[data-provider="${provider}"]`);
     const apiKey = keyInput.value.trim();
+    
+    // Don't allow testing disabled providers
+    if (provider !== 'anthropic') {
+        showStatusMessage(`Testing for ${getProviderName(provider)} is not available yet. Only Claude is currently supported.`, 'info');
+        return;
+    }
     
     if (!apiKey) {
         showStatusMessage('Please enter an API key first.', 'error');
@@ -1250,9 +1457,7 @@ function getExpectedKeyFormat(provider) {
     const formats = {
         'openai': 'sk-...',
         'anthropic': 'sk-ant-...',
-        'google': 'AI...',
-        'huggingface': 'hf_...',
-        'cohere': 'alphanumeric string'
+        'google': 'AI...'
     };
     return formats[provider] || 'provider-specific format';
 }
@@ -1264,9 +1469,7 @@ function getProviderName(provider) {
     const names = {
         'openai': 'OpenAI',
         'anthropic': 'Anthropic',
-        'google': 'Google AI',
-        'huggingface': 'Hugging Face',
-        'cohere': 'Cohere'
+        'google': 'Google AI'
     };
     return names[provider] || provider.toUpperCase();
 }
@@ -1319,38 +1522,6 @@ async function makeTestApiCall(provider, apiKey) {
                     maxOutputTokens: 10,
                     temperature: 0
                 }
-            })
-        },
-        'huggingface': {
-            url: 'https://api-inference.huggingface.co/models/microsoft/DialoGPT-medium',
-            headers: {
-                'Authorization': `Bearer ${apiKey}`,
-                'Content-Type': 'application/json'
-            },
-            method: 'POST',
-            body: JSON.stringify({
-                inputs: 'Test: Say "HuggingFace key works"',
-                parameters: {
-                    max_length: 20,
-                    temperature: 0.1
-                },
-                options: {
-                    wait_for_model: false
-                }
-            })
-        },
-        'cohere': {
-            url: 'https://api.cohere.ai/v1/generate',
-            headers: {
-                'Authorization': `Bearer ${apiKey}`,
-                'Content-Type': 'application/json'
-            },
-            method: 'POST',
-            body: JSON.stringify({
-                prompt: 'Test: Say "Cohere key works"',
-                model: 'command-light',
-                max_tokens: 10,
-                temperature: 0
             })
         }
     };
@@ -1440,19 +1611,6 @@ async function makeTestApiCall(provider, apiKey) {
                          response.status === 403 ? 'Forbidden - check API key permissions' :
                          `HTTP ${response.status}`;
             }
-        } else if (provider === 'huggingface') {
-            isValid = response.status === 200;
-            if (!isValid) {
-                details = response.status === 401 ? 'Invalid API key' :
-                         `HTTP ${response.status}`;
-            }
-        } else if (provider === 'cohere') {
-            isValid = response.status === 200;
-            if (!isValid) {
-                details = response.status === 401 ? 'Invalid API key' :
-                         response.status === 400 ? 'Bad request - check API key format' :
-                         `HTTP ${response.status}`;
-            }
         }
         
         return {
@@ -1495,7 +1653,8 @@ async function makeTestApiCall(provider, apiKey) {
  * Show validation errors for API keys
  */
 function showValidationErrors() {
-    const providers = ['openai', 'anthropic', 'google', 'huggingface', 'cohere'];
+    // Only validate Claude (Anthropic) API key since it's the only supported provider
+    const providers = ['anthropic'];
     let hasErrors = false;
     
     providers.forEach(provider => {
@@ -1511,7 +1670,7 @@ function showValidationErrors() {
     });
     
     if (hasErrors) {
-        showStatusMessage('Please check the format of your API keys.', 'error');
+        showStatusMessage('Please check the format of your Claude API key.', 'error');
     }
     
     return !hasErrors;

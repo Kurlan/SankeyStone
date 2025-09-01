@@ -95,15 +95,21 @@ Ensure all node IDs are unique integers starting from 0, and all link source/tar
  * Call Claude API to generate Sankey diagram data
  */
 async function callClaudeAPI(pageContext) {
+    const startTime = Date.now();
+    
     const apiKey = await getClaudeApiKey();
     if (!apiKey) {
+        // Log the error for debugging
+        if (typeof logSystemEvent === 'function') {
+            logSystemEvent('Claude API call failed: No API key available');
+        }
         throw new Error('No Claude API key available');
     }
 
     const prompt = createSankeyPrompt(pageContext);
     
     const requestBody = {
-        model: 'claude-3-sonnet-20240229',
+        model: 'claude-3-5-sonnet-20241022',
         max_tokens: 2000,
         temperature: 0.3,
         messages: [
@@ -115,6 +121,21 @@ async function callClaudeAPI(pageContext) {
     };
 
     console.log('🤖 Calling Claude API...');
+    
+    // Log the request for debugging
+    if (typeof logLLMRequest === 'function') {
+        logLLMRequest('anthropic', {
+            url: 'https://api.anthropic.com/v1/messages',
+            method: 'POST',
+            headers: {
+                'x-api-key': '[REDACTED]',
+                'Content-Type': 'application/json',
+                'anthropic-version': '2023-06-01',
+                'anthropic-dangerous-direct-browser-access': 'true'
+            },
+            body: JSON.stringify(requestBody)
+        });
+    }
     
     try {
         const response = await fetch('https://api.anthropic.com/v1/messages', {
@@ -128,7 +149,13 @@ async function callClaudeAPI(pageContext) {
             body: JSON.stringify(requestBody)
         });
 
+        const duration = Date.now() - startTime;
         console.log('🤖 Claude API response status:', response.status);
+        
+        // Log the response for debugging
+        if (typeof logLLMResponse === 'function') {
+            logLLMResponse('anthropic', response, duration);
+        }
 
         if (!response.ok) {
             const errorText = await response.text();
@@ -182,9 +209,25 @@ async function generateSankeyWithLLM(pageContext) {
     try {
         console.log('🤖 Starting LLM-based Sankey generation...');
         
+        // Log system event for debugging
+        if (typeof logSystemEvent === 'function') {
+            logSystemEvent('Starting LLM-based Sankey generation', {
+                pageTitle: pageContext?.title,
+                contentLength: pageContext?.content?.length || 0,
+                headingsCount: pageContext?.headings?.length || 0,
+                tablesCount: pageContext?.tables?.length || 0
+            });
+        }
+        
         // Check if LLM is available
         if (!(await isLLMAvailable())) {
             console.log('🤖 LLM not available or disabled');
+            
+            // Log availability check result
+            if (typeof logSystemEvent === 'function') {
+                logSystemEvent('LLM not available or disabled - skipping generation');
+            }
+            
             return null;
         }
         
@@ -192,10 +235,22 @@ async function generateSankeyWithLLM(pageContext) {
         const result = await callClaudeAPI(pageContext);
         
         console.log('🤖 LLM generated Sankey data:', result);
+        
+        // Log the result for debugging
+        if (typeof logLLMResult === 'function') {
+            logLLMResult('anthropic', result, 'generate_diagram');
+        }
+        
         return result;
         
     } catch (error) {
         console.error('🤖 Error generating Sankey with LLM:', error);
+        
+        // Log the error for debugging
+        if (typeof logLLMResult === 'function') {
+            logLLMResult('anthropic', { error: error.message }, 'generate_diagram');
+        }
+        
         return null;
     }
 }

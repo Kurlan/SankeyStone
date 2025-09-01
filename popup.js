@@ -308,6 +308,53 @@ function getNodeColor(node) {
     }
 }
 
+// Comprehensive SVG clearing function
+function clearSVGCompletely(svg) {
+    if (!svg) {
+        console.warn('⚠️ SVG element not provided to clearSVGCompletely');
+        return;
+    }
+    
+    console.log('🧹 Performing comprehensive SVG clear...');
+    
+    // Method 1: innerHTML clear (most thorough)
+    svg.innerHTML = '';
+    
+    // Method 2: Remove all children manually as backup
+    while (svg.firstChild) {
+        svg.removeChild(svg.firstChild);
+    }
+    
+    // Method 3: Query and remove specific elements that might be stuck
+    const elementsToRemove = svg.querySelectorAll('*');
+    elementsToRemove.forEach(el => {
+        try {
+            el.remove();
+        } catch (e) {
+            // Ignore removal errors
+        }
+    });
+    
+    // Reset all SVG attributes to default state
+    const attributesToRemove = ['viewBox', 'preserveAspectRatio', 'width', 'height'];
+    attributesToRemove.forEach(attr => {
+        svg.removeAttribute(attr);
+    });
+    
+    // Clear inline styles
+    svg.removeAttribute('style');
+    svg.style.cssText = '';
+    
+    // Reset CSS classes
+    svg.className = '';
+    svg.classList.remove('dragging');
+    
+    // Force a layout recalculation
+    svg.offsetHeight; // Trigger reflow
+    
+    console.log('✅ SVG completely cleared and reset');
+}
+
 // Create SVG elements using vanilla JavaScript
 function createSVGElement(tag, attributes = {}) {
     const element = document.createElementNS('http://www.w3.org/2000/svg', tag);
@@ -849,22 +896,22 @@ function createSankeyDiagram(data) {
     try {
         console.log('Creating pure JavaScript Sankey diagram');
         
-        // Clear existing content
+        // Get elements
         const loadingDiv = document.getElementById('loading');
         const svg = document.getElementById('sankey-svg');
+        const container = document.getElementById('sankey-container');
         
-        // Comprehensive SVG clearing - remove all child elements
-        svg.innerHTML = '';
+        // Force a synchronous clear and reset
+        clearSVGCompletely(svg);
         
-        // Reset SVG attributes to ensure clean slate
-        svg.removeAttribute('viewBox');
-        svg.removeAttribute('preserveAspectRatio');
-        svg.style.width = '';
-        svg.style.height = '';
-        
-        // Clear any potential cached references
+        // Clear any cached references first
         currentSvg = null;
         currentGraph = null;
+        
+        // Reset container styles
+        if (container) {
+            container.style.height = '';
+        }
         
         // Hide loading message immediately and completely
         loadingDiv.style.display = 'none';

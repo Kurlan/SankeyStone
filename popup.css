@@ -166,6 +166,21 @@ main {
     cursor: move;
     fill-opacity: 0.9;
     shape-rendering: crispEdges;
+    transition: all 0.15s ease;
+}
+
+.node rect:hover {
+    fill-opacity: 1.0;
+    stroke: rgba(26, 115, 232, 0.3);
+    stroke-width: 2px;
+}
+
+.node.dragging rect {
+    fill-opacity: 0.7;
+    stroke: #1a73e8;
+    stroke-width: 2px;
+    filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.2));
+    cursor: grabbing;
 }
 
 .node text {
@@ -173,15 +188,34 @@ main {
     text-shadow: 0 1px 0 #fff;
     font-size: 12px;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    transition: opacity 0.15s ease;
+}
+
+.node.dragging text {
+    opacity: 0.8;
 }
 
 .link {
     fill: none;
     stroke-opacity: 0.6;
+    transition: stroke-opacity 0.15s ease;
 }
 
 .link:hover {
     stroke-opacity: 0.8;
+}
+
+.link.highlight {
+    stroke-opacity: 0.9;
+    stroke-width: 3px;
+}
+
+/* Prevent text selection during drag operations */
+#sankey-svg.dragging {
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
 }
 
 /* Setup button styling */
@@ -418,6 +452,44 @@ main {
     line-height: 1.4;
 }
 
+/* Future support styling */
+.future-support {
+    margin-top: 16px;
+}
+
+.future-notice {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    background-color: #f8f9fa;
+    border: 1px solid #e1e5e9;
+    border-radius: 6px;
+    padding: 12px;
+}
+
+.future-icon {
+    font-size: 18px;
+    margin-top: 2px;
+}
+
+.future-content {
+    flex: 1;
+}
+
+.future-content strong {
+    display: block;
+    font-size: 14px;
+    color: #202124;
+    margin-bottom: 4px;
+}
+
+.future-content p {
+    margin: 0;
+    font-size: 12px;
+    color: #5f6368;
+    line-height: 1.4;
+}
+
 /* Disabled provider styling */
 .provider-disabled {
     opacity: 0.6;
@@ -469,9 +541,13 @@ select option:disabled {
 
 .input-wrapper {
     position: relative;
+    margin-bottom: 8px;
+}
+
+.input-actions {
     display: flex;
-    align-items: center;
-    gap: 4px;
+    gap: 8px;
+    margin-top: 6px;
 }
 
 .form-group input[type="password"],
@@ -486,10 +562,6 @@ select option:disabled {
     box-sizing: border-box;
 }
 
-.input-wrapper input {
-    padding-right: 72px; /* Space for visibility toggle and test button */
-}
-
 .form-group input:focus,
 .form-group select:focus {
     outline: none;
@@ -497,68 +569,72 @@ select option:disabled {
     box-shadow: 0 0 0 2px rgba(26, 115, 232, 0.2);
 }
 
-.toggle-visibility {
-    position: absolute;
-    right: 6px;
-    background: none;
-    border: none;
-    font-size: 14px;
-    cursor: pointer;
-    padding: 4px;
+/* Button styling for input actions */
+.input-actions .toggle-visibility,
+.input-actions .test-key-btn {
+    background-color: #f8f9fa;
+    border: 1px solid #dadce0;
     border-radius: 4px;
-    transition: background-color 0.2s;
-    user-select: none;
-}
-
-.toggle-visibility:hover {
-    background-color: #f1f3f4;
-}
-
-/* Test button styling */
-.test-key-btn {
-    position: absolute;
-    right: 36px; /* Position between input and visibility toggle */
-    background: none;
-    border: none;
     font-size: 12px;
     cursor: pointer;
-    padding: 4px;
-    border-radius: 4px;
+    padding: 6px 10px;
     transition: all 0.2s;
     user-select: none;
+    font-weight: 500;
+}
+
+.input-actions .toggle-visibility {
+    color: #5f6368;
+}
+
+.input-actions .toggle-visibility:hover {
+    background-color: #e8eaed;
+    color: #202124;
+    border-color: #c5c7ca;
+}
+
+.input-actions .test-key-btn {
     color: #34a853;
 }
 
-.test-key-btn:hover {
+.input-actions .test-key-btn:hover {
     background-color: #e8f5e8;
-    transform: scale(1.1);
-}
-
-.test-key-btn:active {
-    transform: scale(0.95);
-}
-
-.test-key-btn:disabled {
-    color: #dadce0;
-    cursor: not-allowed;
+    border-color: #34a853;
     transform: none;
 }
 
-.test-key-btn:disabled:hover {
-    background-color: transparent;
+.input-actions .test-key-btn:active {
+    transform: scale(0.98);
 }
 
-.test-key-btn.testing {
+.input-actions .test-key-btn:disabled {
+    color: #dadce0;
+    cursor: not-allowed;
+    transform: none;
+    background-color: #f8f9fa;
+    border-color: #e9ecef;
+}
+
+.input-actions .test-key-btn:disabled:hover {
+    background-color: #f8f9fa;
+    border-color: #e9ecef;
+}
+
+.input-actions .test-key-btn.testing {
     color: #ff9800;
     animation: pulse 1s infinite;
 }
 
-.test-key-btn.success {
+.input-actions .test-key-btn.success {
     color: #34a853;
+    background-color: #e8f5e8;
+    border-color: #34a853;
 }
 
-.test-key-btn.error {
+.input-actions .test-key-btn.error {
     color: #ea4335;
+    background-color: #fce8e6;
+    border-color: #ea4335;
 }
 
 @keyframes pulse {

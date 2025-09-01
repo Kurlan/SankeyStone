@@ -64,25 +64,12 @@
             </header>
             
             <main class="setup-main">
+                <div id="status-message" class="status-message hidden"></div>
                 <form id="setup-form" class="setup-form">
                     <div class="section">
                         <h2>🤖 LLM API Configuration</h2>
                         <p class="section-description">Configure your preferred LLM providers. API keys are stored locally and securely.</p>
                         
-                        <div class="form-group">
-                            <label for="openai-key">
-                                <span class="provider-icon">🧠</span>
-                                OpenAI API Key
-                                <span class="optional">(GPT-3.5, GPT-4)</span>
-                            </label>
-                            <div class="input-wrapper">
-                                <input type="password" id="openai-key" name="openai-key" placeholder="sk-...">
-                                <button type="button" class="toggle-visibility" data-target="openai-key">👁️</button>
-                                <button type="button" class="test-key-btn" data-provider="openai" title="Test API Key">🧪</button>
-                            </div>
-                            <small class="help-text">Get your API key from <a href="https://platform.openai.com/api-keys" target="_blank">OpenAI Platform</a></small>
-                        </div>
-
                         <div class="form-group">
                             <label for="anthropic-key">
                                 <span class="provider-icon">🎭</span>
@@ -91,24 +78,22 @@
                             </label>
                             <div class="input-wrapper">
                                 <input type="password" id="anthropic-key" name="anthropic-key" placeholder="sk-ant-...">
-                                <button type="button" class="toggle-visibility" data-target="anthropic-key">👁️</button>
-                                <button type="button" class="test-key-btn" data-provider="anthropic" title="Test API Key">🧪</button>
+                            </div>
+                            <div class="input-actions">
+                                <button type="button" class="toggle-visibility" data-target="anthropic-key">👁️ Show</button>
+                                <button type="button" class="test-key-btn" data-provider="anthropic" title="Test API Key">🧪 Test Key</button>
                             </div>
                             <small class="help-text">Get your API key from <a href="https://console.anthropic.com/" target="_blank">Anthropic Console</a></small>
                         </div>
 
-                        <div class="form-group">
-                            <label for="google-key">
-                                <span class="provider-icon">🔍</span>
-                                Google AI API Key
-                                <span class="optional">(Gemini)</span>
-                            </label>
-                            <div class="input-wrapper">
-                                <input type="password" id="google-key" name="google-key" placeholder="AI...">
-                                <button type="button" class="toggle-visibility" data-target="google-key">👁️</button>
-                                <button type="button" class="test-key-btn" data-provider="google" title="Test API Key">🧪</button>
+                        <div class="form-group future-support">
+                            <div class="future-notice">
+                                <span class="future-icon">🚀</span>
+                                <div class="future-content">
+                                    <strong>Coming Soon</strong>
+                                    <p>Support for additional LLM providers (OpenAI, Google AI, and others) will be added in future releases.</p>
+                                </div>
                             </div>
-                            <small class="help-text">Get your API key from <a href="https://makersuite.google.com/app/apikey" target="_blank">Google AI Studio</a></small>
                         </div>
 
                     </div>
@@ -121,9 +106,7 @@
                             <label for="default-provider">Default LLM Provider</label>
                             <select id="default-provider" name="default-provider">
                                 <option value="">Select a provider...</option>
-                                <option value="openai">OpenAI (GPT)</option>
                                 <option value="anthropic">Anthropic (Claude)</option>
-                                <option value="google">Google AI (Gemini)</option>
                             </select>
                         </div>
 
@@ -154,13 +137,11 @@
                         </div>
                     </div>
                 </form>
-
-                <div id="status-message" class="status-message hidden"></div>
             </main>
         </div>
     </div>
     
-<script src="llm.js"></script>
 <script src="popup.js"></script>
+<script src="llm.js"></script>
 </body>
 </html>

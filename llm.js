@@ -3,12 +3,7 @@
  * Handles API calls to Claude for generating diagram names and data based on page context
  */
 
-// Storage keys
-const STORAGE_KEYS = {
-    ANTHROPIC_KEY: 'sankeystone_anthropic_key',
-    DEFAULT_PROVIDER: 'sankeystone_default_provider',
-    AUTO_ANALYZE: 'sankeystone_auto_analyze'
-};
+// Storage keys - using the global STORAGE_KEYS from popup.js
 
 /**
  * Check if LLM integration is available and enabled

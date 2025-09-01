@@ -222,6 +222,17 @@ const colorThemes = {
 let currentThemeIndex = 0;
 const themeNames = Object.keys(colorThemes);
 
+// Drag state variables
+let isDragging = false;
+let draggedNode = null;
+let draggedNodeGroup = null;
+let dragStartX = 0;
+let dragStartY = 0;
+let nodeStartX = 0;
+let nodeStartY = 0;
+let currentSvg = null;
+let currentGraph = null;
+
 // Color utility functions
 function hexToRgb(hex) {
     const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
@@ -304,6 +315,210 @@ function createSVGElement(tag, attributes = {}) {
         element.setAttribute(key, attributes[key]);
     });
     return element;
+}
+
+// Get SVG coordinates from mouse event
+function getSVGCoordinates(svg, event) {
+    const pt = svg.createSVGPoint();
+    pt.x = event.clientX;
+    pt.y = event.clientY;
+    return pt.matrixTransform(svg.getScreenCTM().inverse());
+}
+
+// Update link paths for a specific node in real-time
+function updateLinksForNode(draggedNode) {
+    if (!currentGraph || !currentSvg) return;
+    
+    // Find all links connected to this node
+    const connectedLinks = currentGraph.links.filter(link => 
+        link.source === draggedNode.id || link.target === draggedNode.id
+    );
+    
+    // Recalculate link positions and paths for connected links
+    connectedLinks.forEach(link => {
+        const sourceNode = currentGraph.nodes.find(n => n.id === link.source);
+        const targetNode = currentGraph.nodes.find(n => n.id === link.target);
+        
+        if (!sourceNode || !targetNode) return;
+        
+        // Update link references
+        link.sourceNode = sourceNode;
+        link.targetNode = targetNode;
+        
+        // Recalculate link path coordinates
+        const x1 = sourceNode.x + sourceNode.width;
+        const sy1 = sourceNode.y + link.sourceY1;
+        const sy2 = sourceNode.y + link.sourceY2;
+        
+        const x2 = targetNode.x;
+        const ty1 = targetNode.y + link.targetY1;
+        const ty2 = targetNode.y + link.targetY2;
+        
+        // Control points for smooth curves
+        const cx1 = x1 + (x2 - x1) * 0.5;
+        const cx2 = x2 - (x2 - x1) * 0.5;
+        
+        // Create updated path
+        const path = [
+            `M${x1},${sy1}`,
+            `C${cx1},${sy1} ${cx2},${ty1} ${x2},${ty1}`,
+            `L${x2},${ty2}`,
+            `C${cx2},${ty2} ${cx1},${sy2} ${x1},${sy2}`,
+            `Z`
+        ].join(' ');
+        
+        link.path = path;
+        
+        // Find and update the corresponding path element in the SVG
+        const pathElements = currentSvg.querySelectorAll('.sankey-link');
+        const linkIndex = currentGraph.links.indexOf(link);
+        if (pathElements[linkIndex]) {
+            pathElements[linkIndex].setAttribute('d', path);
+        }
+    });
+}
+
+// Handle mouse down on node (start drag)
+function handleNodeMouseDown(event, node, nodeGroup) {
+    event.preventDefault();
+    event.stopPropagation();
+    
+    if (!currentSvg) return;
+    
+    // Set drag state
+    isDragging = true;
+    draggedNode = node;
+    draggedNodeGroup = nodeGroup;
+    
+    // Store initial positions
+    const svgCoords = getSVGCoordinates(currentSvg, event);
+    dragStartX = svgCoords.x;
+    dragStartY = svgCoords.y;
+    nodeStartX = node.x;
+    nodeStartY = node.y;
+    
+    // Add visual feedback using CSS classes
+    currentSvg.classList.add('dragging');
+    nodeGroup.classList.add('dragging');
+    
+    // Highlight connected links
+    highlightConnectedLinks(node);
+    
+    console.log(`🖱️ Started dragging node: ${node.name}`);
+}
+
+// Handle mouse move during drag
+function handleMouseMove(event) {
+    if (!isDragging || !draggedNode || !draggedNodeGroup || !currentSvg) return;
+    
+    event.preventDefault();
+    
+    // Get current mouse position in SVG coordinates
+    const svgCoords = getSVGCoordinates(currentSvg, event);
+    
+    // Calculate new position
+    const deltaX = svgCoords.x - dragStartX;
+    const deltaY = svgCoords.y - dragStartY;
+    const newX = nodeStartX + deltaX;
+    const newY = nodeStartY + deltaY;
+    
+    // Apply drag constraints
+    const constrainedPos = applyDragConstraints(newX, newY, draggedNode);
+    
+    // Update node position
+    draggedNode.x = constrainedPos.x;
+    draggedNode.y = constrainedPos.y;
+    
+    // Update visual position
+    draggedNodeGroup.setAttribute('transform', `translate(${constrainedPos.x}, ${constrainedPos.y})`);
+    
+    // Update connected links in real-time
+    updateLinksForNode(draggedNode);
+}
+
+// Highlight connected links during drag
+function highlightConnectedLinks(node) {
+    if (!currentGraph || !currentSvg) return;
+    
+    // Find all links connected to this node
+    const connectedLinkIndices = [];
+    currentGraph.links.forEach((link, index) => {
+        if (link.source === node.id || link.target === node.id) {
+            connectedLinkIndices.push(index);
+        }
+    });
+    
+    // Add highlight class to connected link elements
+    const pathElements = currentSvg.querySelectorAll('.sankey-link');
+    connectedLinkIndices.forEach(index => {
+        if (pathElements[index]) {
+            pathElements[index].classList.add('highlight');
+        }
+    });
+}
+
+// Remove link highlights
+function removeAllLinkHighlights() {
+    if (!currentSvg) return;
+    
+    const pathElements = currentSvg.querySelectorAll('.sankey-link');
+    pathElements.forEach(path => {
+        path.classList.remove('highlight');
+    });
+}
+
+// Handle mouse up (end drag)
+function handleMouseUp(event) {
+    if (!isDragging || !draggedNodeGroup) return;
+    
+    // Reset drag state
+    isDragging = false;
+    
+    // Remove visual feedback using CSS classes
+    if (currentSvg) {
+        currentSvg.classList.remove('dragging');
+    }
+    draggedNodeGroup.classList.remove('dragging');
+    
+    // Remove link highlights
+    removeAllLinkHighlights();
+    
+    console.log(`🖱️ Finished dragging node: ${draggedNode.name}`);
+    
+    // Clear drag references
+    draggedNode = null;
+    draggedNodeGroup = null;
+}
+
+// Apply drag constraints to keep nodes within reasonable bounds
+function applyDragConstraints(newX, newY, node) {
+    if (!currentSvg) return { x: newX, y: newY };
+    
+    // Get SVG dimensions from viewBox
+    const viewBox = currentSvg.getAttribute('viewBox');
+    let svgWidth = 400, svgHeight = 400; // defaults
+    
+    if (viewBox) {
+        const [, , width, height] = viewBox.split(' ').map(Number);
+        svgWidth = width;
+        svgHeight = height;
+    }
+    
+    // Define margins from edges
+    const margin = 20;
+    const titleAreaHeight = 60; // Space reserved for title
+    
+    // Constrain X position
+    const minX = margin;
+    const maxX = svgWidth - node.width - margin;
+    const constrainedX = Math.max(minX, Math.min(maxX, newX));
+    
+    // Constrain Y position (accounting for title area)
+    const minY = titleAreaHeight;
+    const maxY = svgHeight - node.height - margin;
+    const constrainedY = Math.max(minY, Math.min(maxY, newY));
+    
+    return { x: constrainedX, y: constrainedY };
 }
 
 // Function to generate contextual titles based on data patterns
@@ -651,6 +866,10 @@ function createSankeyDiagram(data) {
         // Calculate layout first to get dynamic dimensions
         const graph = calculateSankeyLayout(data);
         
+        // Store references for drag functionality
+        currentSvg = svg;
+        currentGraph = graph;
+        
         console.log('Layout calculated:', graph);
         console.log('Dynamic dimensions:', graph.dimensions);
         
@@ -802,6 +1021,28 @@ function createSankeyDiagram(data) {
                 fill: 'white'
             });
             valueText.textContent = node.value ? node.value.toLocaleString() : '';
+            
+            // Add drag functionality to node
+            nodeGroup.style.cursor = 'grab';
+            nodeGroup.style.userSelect = 'none';
+            
+            // Add drag event listeners
+            nodeGroup.addEventListener('mousedown', function(event) {
+                handleNodeMouseDown(event, node, nodeGroup);
+            });
+            
+            // Add hover effects
+            nodeGroup.addEventListener('mouseenter', function() {
+                if (!isDragging) {
+                    this.setAttribute('opacity', '0.9');
+                }
+            });
+            
+            nodeGroup.addEventListener('mouseleave', function() {
+                if (!isDragging) {
+                    this.setAttribute('opacity', '1');
+                }
+            });
             
             nodeGroup.appendChild(rect);
             nodeGroup.appendChild(text);
@@ -1228,11 +1469,7 @@ async function tryLLMGeneration() {
 
 // Storage keys for different settings
 const STORAGE_KEYS = {
-    OPENAI_KEY: 'sankeystone_openai_key',
     ANTHROPIC_KEY: 'sankeystone_anthropic_key',
-    GOOGLE_KEY: 'sankeystone_google_key',
-    HUGGINGFACE_KEY: 'sankeystone_huggingface_key',
-    COHERE_KEY: 'sankeystone_cohere_key',
     DEFAULT_PROVIDER: 'sankeystone_default_provider',
     AUTO_ANALYZE: 'sankeystone_auto_analyze'
 };
@@ -1249,19 +1486,11 @@ async function loadSettings() {
         const stored = await chrome.storage.sync.get(Object.values(STORAGE_KEYS));
         
         // Populate form fields with stored values
-        const openaiKey = document.getElementById('openai-key');
         const anthropicKey = document.getElementById('anthropic-key');
-        const googleKey = document.getElementById('google-key');
-        const huggingfaceKey = document.getElementById('huggingface-key');
-        const cohereKey = document.getElementById('cohere-key');
         const defaultProvider = document.getElementById('default-provider');
         const autoAnalyze = document.getElementById('auto-analyze');
         
-        if (openaiKey) openaiKey.value = stored[STORAGE_KEYS.OPENAI_KEY] || '';
         if (anthropicKey) anthropicKey.value = stored[STORAGE_KEYS.ANTHROPIC_KEY] || '';
-        if (googleKey) googleKey.value = stored[STORAGE_KEYS.GOOGLE_KEY] || '';
-        if (huggingfaceKey) huggingfaceKey.value = stored[STORAGE_KEYS.HUGGINGFACE_KEY] || '';
-        if (cohereKey) cohereKey.value = stored[STORAGE_KEYS.COHERE_KEY] || '';
         if (defaultProvider) defaultProvider.value = stored[STORAGE_KEYS.DEFAULT_PROVIDER] || '';
         if (autoAnalyze) autoAnalyze.checked = stored[STORAGE_KEYS.AUTO_ANALYZE] === true;
         
@@ -1292,21 +1521,13 @@ async function saveSettings() {
         
         // Prepare data object for storage
         const dataToSave = {
-            [STORAGE_KEYS.OPENAI_KEY]: document.getElementById('openai-key')?.value?.trim() || '',
             [STORAGE_KEYS.ANTHROPIC_KEY]: document.getElementById('anthropic-key')?.value?.trim() || '',
-            [STORAGE_KEYS.GOOGLE_KEY]: document.getElementById('google-key')?.value?.trim() || '',
-            [STORAGE_KEYS.HUGGINGFACE_KEY]: document.getElementById('huggingface-key')?.value?.trim() || '',
-            [STORAGE_KEYS.COHERE_KEY]: document.getElementById('cohere-key')?.value?.trim() || '',
             [STORAGE_KEYS.DEFAULT_PROVIDER]: document.getElementById('default-provider')?.value || '',
             [STORAGE_KEYS.AUTO_ANALYZE]: document.getElementById('auto-analyze')?.checked || false
         };
         
         // Validate at least one API key is provided
-        const hasApiKey = dataToSave[STORAGE_KEYS.OPENAI_KEY] || 
-                         dataToSave[STORAGE_KEYS.ANTHROPIC_KEY] || 
-                         dataToSave[STORAGE_KEYS.GOOGLE_KEY] || 
-                         dataToSave[STORAGE_KEYS.HUGGINGFACE_KEY] || 
-                         dataToSave[STORAGE_KEYS.COHERE_KEY];
+        const hasApiKey = dataToSave[STORAGE_KEYS.ANTHROPIC_KEY];
         
         if (!hasApiKey) {
             showStatusMessage('Please provide at least one API key.', 'error');
@@ -1322,11 +1543,7 @@ async function saveSettings() {
         // Check if default provider has corresponding API key
         if (dataToSave[STORAGE_KEYS.DEFAULT_PROVIDER]) {
             const providerKeyMap = {
-                'openai': STORAGE_KEYS.OPENAI_KEY,
-                'anthropic': STORAGE_KEYS.ANTHROPIC_KEY,
-                'google': STORAGE_KEYS.GOOGLE_KEY,
-                'huggingface': STORAGE_KEYS.HUGGINGFACE_KEY,
-                'cohere': STORAGE_KEYS.COHERE_KEY
+                'anthropic': STORAGE_KEYS.ANTHROPIC_KEY
             };
             
             const requiredKey = providerKeyMap[dataToSave[STORAGE_KEYS.DEFAULT_PROVIDER]];
@@ -1398,11 +1615,7 @@ function updateDefaultProviderOptions() {
     
     // Get current values of API keys
     const keys = {
-        openai: document.getElementById('openai-key')?.value?.trim() || '',
-        anthropic: document.getElementById('anthropic-key')?.value?.trim() || '',
-        google: document.getElementById('google-key')?.value?.trim() || '',
-        huggingface: document.getElementById('huggingface-key')?.value?.trim() || '',
-        cohere: document.getElementById('cohere-key')?.value?.trim() || ''
+        anthropic: document.getElementById('anthropic-key')?.value?.trim() || ''
     };
     
     // Enable/disable options based on available keys
@@ -1477,11 +1690,7 @@ function showValidationErrors() {
  */
 function checkFormDirty() {
     const currentFormData = {
-        [STORAGE_KEYS.OPENAI_KEY]: document.getElementById('openai-key')?.value?.trim() || '',
         [STORAGE_KEYS.ANTHROPIC_KEY]: document.getElementById('anthropic-key')?.value?.trim() || '',
-        [STORAGE_KEYS.GOOGLE_KEY]: document.getElementById('google-key')?.value?.trim() || '',
-        [STORAGE_KEYS.HUGGINGFACE_KEY]: document.getElementById('huggingface-key')?.value?.trim() || '',
-        [STORAGE_KEYS.COHERE_KEY]: document.getElementById('cohere-key')?.value?.trim() || '',
         [STORAGE_KEYS.DEFAULT_PROVIDER]: document.getElementById('default-provider')?.value || '',
         [STORAGE_KEYS.AUTO_ANALYZE]: document.getElementById('auto-analyze')?.checked || false
     };
@@ -1988,14 +2197,23 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // Add event listener for setup button
-    document.getElementById('setup-btn').addEventListener('click', showSetupView);
+    const setupBtn = document.getElementById('setup-btn');
+    if (setupBtn) {
+        console.log('✅ Setup button found, adding event listener');
+        setupBtn.addEventListener('click', function() {
+            console.log('⚙️ Setup button clicked!');
+            showSetupView();
+        });
+    } else {
+        console.error('❌ Setup button not found in DOM!');
+    }
     
     // Add event listener for back button (when setup view is visible)
     document.getElementById('back-btn').addEventListener('click', showMainView);
     
     // Setup form event listeners (only add if elements exist to avoid errors)
-    if (document.getElementById('setup-form')) {
-        const form = document.getElementById('setup-form');
+    const form = document.getElementById('setup-form');
+    if (form) {
         const saveBtn = document.getElementById('save-btn');
         const cancelBtn = document.getElementById('cancel-btn');
         const clearDataBtn = document.getElementById('clear-data-btn');
@@ -2034,30 +2252,10 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         
         // Cancel button
-        cancelBtn.addEventListener('click', showMainView);
+        if (cancelBtn) cancelBtn.addEventListener('click', showMainView);
         
-        // Clear data button
-        clearDataBtn.addEventListener('click', clearAllData);
-        
-        // Password visibility toggles
-        document.querySelectorAll('.toggle-visibility').forEach(button => {
-            button.addEventListener('click', function() {
-                const targetId = this.getAttribute('data-target');
-                togglePasswordVisibility(targetId);
-            });
-        });
-        
-        // Test button event listeners
-        const testButtons = document.querySelectorAll('.test-key-btn');
-        console.log('🧪 Found', testButtons.length, 'test buttons');
-        testButtons.forEach(button => {
-            const provider = button.getAttribute('data-provider');
-            console.log('🧪 Adding event listener for provider:', provider);
-            button.addEventListener('click', function() {
-                console.log('🧪 Test button clicked for provider:', provider);
-                testApiKey(provider);
-            });
-        });
+        // Clear data button  
+        if (clearDataBtn) clearDataBtn.addEventListener('click', clearAllData);
         
         // Form change detection
         form.addEventListener('input', function() {
@@ -2076,6 +2274,41 @@ document.addEventListener('DOMContentLoaded', function() {
             updateDefaultProviderOptions();
         });
     }
+    
+    // Password visibility toggles (attach globally)
+    document.querySelectorAll('.toggle-visibility').forEach(button => {
+        button.addEventListener('click', function() {
+            const targetId = this.getAttribute('data-target');
+            togglePasswordVisibility(targetId);
+        });
+    });
+    
+    // Test button event listeners (attach globally regardless of form visibility)
+    const testButtons = document.querySelectorAll('.test-key-btn');
+    console.log('🧪 Found', testButtons.length, 'test buttons');
+    testButtons.forEach(button => {
+        const provider = button.getAttribute('data-provider');
+        console.log('🧪 Adding event listener for provider:', provider);
+        button.addEventListener('click', function(event) {
+            console.log('🧪 Test button clicked for provider:', provider);
+            event.preventDefault();
+            event.stopPropagation();
+            testApiKey(provider);
+        });
+    });
+    
+    // Add global mouse event listeners for drag functionality
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+    
+    // Prevent text selection during drag
+    document.addEventListener('selectstart', function(event) {
+        if (isDragging) {
+            event.preventDefault();
+        }
+    });
+    
+    console.log('🖱️ Drag functionality initialized');
 });
 
 // Function to download diagram as PNG image
@@ -2217,11 +2450,4 @@ function downloadDiagramAsImage() {
     }
 }
 
-// Export for potential future use
-window.SankeyStone = {
-    createDiagram: createSankeyDiagram,
-    generateRandomData: generateRandomData,
-    currentData: () => currentData,
-    downloadImage: downloadDiagramAsImage
-};
 

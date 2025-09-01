@@ -12,8 +12,12 @@ SankeyStone is a lightweight Chrome extension that visualizes data flow using in
 ## ✨ Features
 
 - 📊 **Interactive Sankey Diagrams**: Generate beautiful flow visualizations with hover effects
+- 🤖 **AI-Powered Analysis**: Use Claude AI to automatically analyze web pages and generate meaningful Sankey diagrams
+- 🎨 **15 Color Themes**: Choose from a variety of beautiful color schemes including Ocean Depths, Neon Nights, and Cosmic Aurora
+- 💾 **Export Functionality**: Download diagrams as PNG images for presentations and reports
+- 🔧 **LLM Configuration**: Secure local storage of API keys with built-in testing functionality
+- 🐛 **Debug Tools**: Built-in LLM debug console for troubleshooting API calls
 - 🔄 **Dynamic Data**: Extract data from web pages or use built-in sample data
-- 🎨 **Colorful Visualization**: Automatically colored nodes and links for better readability
 - ⚡ **Fast Rendering**: Pure JavaScript implementation with SVG graphics
 - 🌐 **Web Integration**: Extracts Sankey data from HTML tables or JSON on any webpage
 - 🔄 **Real-time Updates**: Regenerate diagrams with new random data
@@ -52,8 +56,29 @@ SankeyStone is a lightweight Chrome extension that visualizes data flow using in
 
 1. **Click the Extension Icon**: Open the SankeyStone popup
 2. **View Sample Data**: See a traffic flow diagram with random data
-3. **Regenerate**: Click "Regenerate Diagram" for new sample data
-4. **Hover for Details**: Hover over links and nodes to see values
+3. **Choose Color Themes**: Select from 15 beautiful color schemes
+4. **Download Diagrams**: Export as PNG images using the download button
+5. **Hover for Details**: Hover over links and nodes to see values
+
+### 🤖 AI-Powered Analysis Setup
+
+**NEW!** SankeyStone now includes Claude AI integration for automatic diagram generation:
+
+1. **Configure API Key**:
+   - Click the ⚙️ settings button in the extension popup
+   - Enter your Anthropic Claude API key
+   - Test the connection and save settings
+   - Get your API key from [Anthropic Console](https://console.anthropic.com/)
+
+2. **Enable Auto-Analysis**:
+   - Check "Auto-analyze Sankey diagrams with LLM"
+   - Save your settings
+
+3. **Generate AI Diagrams**:
+   - Navigate to any web page with data (tables, statistics, processes)
+   - Click "🔄 Refresh from Page" in the extension
+   - Claude will analyze the entire page content and create a meaningful Sankey diagram
+   - View debug logs using the "🔍 LLM Debug Logs" toggle
 
 ### Using with Web Page Data
 
@@ -105,24 +130,34 @@ Create tables with `data-sankey-layer` attributes:
 ```
 SankeyStone/
 ├── manifest.json          # Extension configuration
-├── popup.html            # Extension popup interface
-├── popup.css             # Popup styling
-├── popup.js              # Main diagram generation logic
+├── popup.html            # Main popup interface with dual view system
+├── popup.css             # Main popup styling
+├── popup.js              # Core diagram generation and UI logic
+├── llm.js                # LLM integration module (Claude API)
 ├── content.js            # Web page data extraction
-├── icons/                # Extension icons
-│   ├── icon16.png
-│   ├── icon32.png
-│   ├── icon48.png
-│   └── icon128.png
-└── README.md
+├── setup.html            # Standalone setup page (legacy)
+├── setup.css             # Setup page styling (legacy)
+├── setup.js              # Setup page logic (legacy)
+├── test-page.html        # Test page for development
+├── test_page.html        # Additional test page
+├── icon16.png            # Extension icons (16x16)
+├── icon32.png            # Extension icons (32x32)
+├── icon48.png            # Extension icons (48x48)
+├── icon128.png           # Extension icons (128x128)
+└── README.md             # Project documentation
 ```
 
 ### Key Components
 
-- **Popup Interface** (`popup.js`): Generates and renders Sankey diagrams using vanilla JavaScript and SVG
-- **Content Script** (`content.js`): Extracts structured data from web pages
-- **Data Processing**: Handles both JSON and HTML table data formats
-- **Layout Algorithm**: Custom Sankey layout calculation for optimal visualization
+- **Main Interface** (`popup.html`/`popup.js`): Dual-view system with main diagram view and integrated setup view
+- **LLM Integration** (`llm.js`): Claude API integration for AI-powered diagram generation from page content
+- **Content Script** (`content.js`): Extracts structured data from web pages including full page content for LLM analysis
+- **Setup System**: Built-in configuration interface for LLM API keys with secure local storage
+- **Color Themes**: 15 predefined color schemes for diagram customization
+- **Export System**: PNG download functionality with proper file naming
+- **Debug Tools**: Built-in LLM debugging console with request/response logging
+- **Data Processing**: Handles JSON, HTML table data, and AI-generated diagram data
+- **Layout Algorithm**: Custom Sankey layout calculation with hover interactions
 
 ## 🎨 Sample Data Structure
 
@@ -173,10 +208,11 @@ The extension demonstrates a typical website traffic flow:
 
 ### Key Files to Modify
 
-- **`popup.js`**: Modify diagram generation, styling, or layout
-- **`popup.css`**: Update visual styling
-- **`content.js`**: Change data extraction logic
-- **`manifest.json`**: Update permissions or extension metadata
+- **`popup.js`**: Core diagram generation, UI logic, color themes, and export functionality
+- **`popup.css`**: Visual styling for main interface and setup views
+- **`llm.js`**: LLM integration, Claude API calls, and AI analysis logic
+- **`content.js`**: Web page data extraction and page content analysis
+- **`manifest.json`**: Extension permissions, configuration, and metadata
 
 ## 🤝 Contributing
 
@@ -190,13 +226,16 @@ Contributions are welcome! Here's how you can help:
 
 ### Ideas for Contributions
 
-- 📊 Add more sample data templates
-- 🎨 Improve visual styling and color schemes
-- ⚡ Optimize performance for large datasets
-- 📱 Add responsive design for different screen sizes
-- 🔍 Add data filtering and search capabilities
-- 📤 Add export functionality (PNG, SVG, JSON)
-- 🌐 Support for more data extraction formats
+- 🤖 **LLM Enhancements**: Add support for OpenAI, Google AI, or other LLM providers
+- 📊 **Data Templates**: Create more sample data templates for different industries
+- 🎨 **Visual Improvements**: Design new color themes or improve existing ones
+- 📥 **Export Formats**: Add SVG, JSON, or PDF export capabilities
+- 🔍 **Search & Filter**: Add data filtering and search capabilities within diagrams
+- ⚡ **Performance**: Optimize rendering for very large datasets (1000+ nodes)
+- 📱 **Responsive Design**: Improve mobile and small screen compatibility
+- 🌐 **Data Sources**: Support for CSV files, APIs, or database connections
+- 📊 **Analytics**: Add diagram statistics and flow analysis features
+- 🎆 **Animations**: Implement smooth transitions and interactive animations
 
 ## 🐛 Issues & Support
 
@@ -221,13 +260,27 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 📊 Roadmap
 
-- [ ] Publish to Chrome Web Store
-- [ ] Add export functionality (PNG, SVG)
-- [ ] Implement custom color themes
-- [ ] Add animation transitions
-- [ ] Support for larger datasets
-- [ ] Firefox extension port
-- [ ] Integration with popular analytics platforms
+### ✅ Completed Features
+- [x] **AI Integration**: Claude API integration with full page analysis
+- [x] **Color Themes**: 15 beautiful predefined color schemes
+- [x] **PNG Export**: Download diagrams as high-quality PNG images
+- [x] **Debug Tools**: Comprehensive LLM debugging console
+- [x] **Secure Setup**: Local API key storage with testing functionality
+
+### 🚀 Coming Next
+- [ ] **Chrome Web Store**: Publish extension for easy installation
+- [ ] **Multi-LLM Support**: Add OpenAI, Google AI, and other providers
+- [ ] **SVG Export**: Vector graphics export for scalable diagrams
+- [ ] **Enhanced Analytics**: Page analysis insights and confidence scoring
+- [ ] **Custom Themes**: User-defined color palette creation
+- [ ] **Animation Engine**: Smooth transitions and interactive effects
+
+### 🌌 Future Vision
+- [ ] **Firefox Extension**: Cross-browser compatibility
+- [ ] **Enterprise Features**: Batch processing and API integrations
+- [ ] **Advanced Layouts**: Tree, circular, and hierarchical diagram types
+- [ ] **Collaboration Tools**: Share and embed diagrams
+- [ ] **Data Connectors**: Direct integration with analytics platforms
 
 ---
 

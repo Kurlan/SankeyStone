@@ -617,22 +617,31 @@ function applyDragConstraints(newX, newY, node) {
     return { x: constrainedX, y: constrainedY };
 }
 
-// Function to generate contextual titles based on data patterns
-function generateDiagramTitle(data) {
+// Context-aware unit mapping based on detected patterns
+const contextUnits = {
+    traffic: { singular: 'visitor', plural: 'visitors', short: 'vis' },
+    ecommerce: { singular: 'customer', plural: 'customers', short: 'cust' },
+    marketing: { singular: 'lead', plural: 'leads', short: 'leads' },
+    education: { singular: 'student', plural: 'students', short: 'std' },
+    healthcare: { singular: 'patient', plural: 'patients', short: 'pat' },
+    finance: { singular: 'transaction', plural: 'transactions', short: 'txn' },
+    saas: { singular: 'user', plural: 'users', short: 'usr' },
+    manufacturing: { singular: 'unit', plural: 'units', short: 'units' },
+    retail: { singular: 'customer', plural: 'customers', short: 'cust' },
+    media: { singular: 'interaction', plural: 'interactions', short: 'int' },
+    flow: { singular: 'item', plural: 'items', short: 'items' }
+};
+
+// Global variable to store detected context for consistent formatting
+let detectedDataContext = 'flow';
+
+// Function to detect data context based on node names
+function detectDataContext(data) {
     const nodes = data.nodes || [];
-    const links = data.links || [];
     
     if (nodes.length === 0) {
-        return "Data Flow Diagram";
+        return 'flow';
     }
-    
-    // Analyze data to determine context
-    const layers = [...new Set(nodes.map(n => n.layer))].sort();
-    const numLayers = layers.length;
-    
-    // Get nodes from first layer (sources) and last layer (outcomes)
-    const sourceNodes = nodes.filter(n => n.layer === Math.min(...layers));
-    const outcomeNodes = nodes.filter(n => n.layer === Math.max(...layers));
     
     // Detect common business patterns by analyzing node names
     const nodeNames = nodes.map(n => n.name.toLowerCase());
@@ -653,93 +662,185 @@ function generateDiagramTitle(data) {
     };
     
     // Detect primary context
-    let detectedContext = 'flow';
+    let context = 'flow';
     let maxMatches = 0;
     
-    for (const [context, pattern] of Object.entries(contexts)) {
+    for (const [contextName, pattern] of Object.entries(contexts)) {
         const matches = (allText.match(pattern) || []).length;
         if (matches > maxMatches) {
             maxMatches = matches;
-            detectedContext = context;
+            context = contextName;
         }
     }
     
-    // Calculate total flow volume
+    return context;
+}
+
+// Function to format values with context-appropriate units and magnitude indicators
+function formatValueWithUnits(value, useShortForm = false, includeUnit = true) {
+    if (!value && value !== 0) return '';
+    
+    const units = contextUnits[detectedDataContext] || contextUnits.flow;
+    const unitText = includeUnit ? (value === 1 ? units.singular : units.plural) : '';
+    const shortUnitText = includeUnit ? units.short : '';
+    
+    let formattedNumber;
+    let suffix = '';
+    
+    // Format based on magnitude with clear indicators
+    if (value >= 1000000000) {
+        formattedNumber = (value / 1000000000).toFixed(1);
+        suffix = 'B'; // Billions
+    } else if (value >= 1000000) {
+        formattedNumber = (value / 1000000).toFixed(1);
+        suffix = 'M'; // Millions
+    } else if (value >= 1000) {
+        formattedNumber = (value / 1000).toFixed(1);
+        suffix = 'K'; // Thousands
+    } else {
+        formattedNumber = value.toLocaleString();
+    }
+    
+    // Remove unnecessary decimal places
+    if (suffix && formattedNumber.endsWith('.0')) {
+        formattedNumber = formattedNumber.slice(0, -2);
+    }
+    
+    // Construct final formatted string
+    if (useShortForm) {
+        // For compact labels (e.g., "2.5K vis")
+        return suffix ? `${formattedNumber}${suffix} ${shortUnitText}`.trim() : `${formattedNumber} ${shortUnitText}`.trim();
+    } else {
+        // For full labels (e.g., "2,500 visitors" or "2.5K visitors")
+        if (suffix) {
+            return includeUnit ? `${formattedNumber}${suffix} ${unitText}` : `${formattedNumber}${suffix}`;
+        } else {
+            return includeUnit ? `${formattedNumber} ${unitText}` : formattedNumber;
+        }
+    }
+}
+
+// Function to format values for tooltips with detailed context
+function formatTooltipValue(value) {
+    const units = contextUnits[detectedDataContext] || contextUnits.flow;
+    const baseFormatted = formatValueWithUnits(value, false, true);
+    
+    // Add the raw number in parentheses for clarity when using magnitude suffixes
+    if (value >= 1000) {
+        return `${baseFormatted} (${value.toLocaleString()})`;
+    }
+    
+    return baseFormatted;
+}
+
+// Function to generate contextual titles based on data patterns
+function generateDiagramTitle(data) {
+    const nodes = data.nodes || [];
+    const links = data.links || [];
+    
+    if (nodes.length === 0) {
+        return "Data Flow Diagram";
+    }
+    
+    // Detect and store context globally for consistent formatting
+    detectedDataContext = detectDataContext(data);
+    
+    // Analyze data to determine context
+    const layers = [...new Set(nodes.map(n => n.layer))].sort();
+    const numLayers = layers.length;
+    
+    // Get nodes from first layer (sources) and last layer (outcomes)
+    const sourceNodes = nodes.filter(n => n.layer === Math.min(...layers));
+    const outcomeNodes = nodes.filter(n => n.layer === Math.max(...layers));
+    
+    // Calculate total flow volume for determining magnitude
     const totalVolume = links.reduce((sum, link) => sum + (link.value || 0), 0);
-    const formattedVolume = totalVolume.toLocaleString();
+    
+    // Determine the appropriate unit descriptor for the title
+    const units = contextUnits[detectedDataContext] || contextUnits.flow;
+    let unitDescriptor = units.plural;
+    
+    // Add magnitude descriptor to unit for title clarity
+    if (totalVolume >= 1000000000) {
+        unitDescriptor = `Billions of ${units.plural}`;
+    } else if (totalVolume >= 1000000) {
+        unitDescriptor = `Millions of ${units.plural}`;
+    } else if (totalVolume >= 1000) {
+        unitDescriptor = `Thousands of ${units.plural}`;
+    }
     
     // Generate contextual titles based on detected patterns
     const titleTemplates = {
         traffic: [
-            `Website Traffic Flow Analysis (${formattedVolume} visitors)`,
-            `Traffic Source Distribution & Conversion`,
-            `User Journey Flow Diagram`,
-            `Website Analytics Overview`
+            `Website Traffic Flow Analysis (${unitDescriptor})`,
+            `Traffic Source Distribution & Conversion (${unitDescriptor})`,
+            `User Journey Flow Diagram (${unitDescriptor})`,
+            `Website Analytics Overview (${unitDescriptor})`
         ],
         ecommerce: [
-            `E-commerce Customer Journey (${formattedVolume} interactions)`,
-            `Sales Funnel Analysis`,
-            `Product Purchase Flow`,
-            `Online Shopping Behavior`
+            `E-commerce Customer Journey (${unitDescriptor})`,
+            `Sales Funnel Analysis (${unitDescriptor})`,
+            `Product Purchase Flow (${unitDescriptor})`,
+            `Online Shopping Behavior (${unitDescriptor})`
         ],
         marketing: [
-            `Marketing Campaign Performance (${formattedVolume} leads)`,
-            `Lead Generation & Conversion Funnel`,
-            `Channel Attribution Analysis`,
-            `Campaign Flow Analysis`
+            `Marketing Campaign Performance (${unitDescriptor})`,
+            `Lead Generation & Conversion Funnel (${unitDescriptor})`,
+            `Channel Attribution Analysis (${unitDescriptor})`,
+            `Campaign Flow Analysis (${unitDescriptor})`
         ],
         education: [
-            `Student Enrollment Journey (${formattedVolume} students)`,
-            `Educational Platform Flow`,
-            `Learning Path Analysis`,
-            `Course Engagement Flow`
+            `Student Enrollment Journey (${unitDescriptor})`,
+            `Educational Platform Flow (${unitDescriptor})`,
+            `Learning Path Analysis (${unitDescriptor})`,
+            `Course Engagement Flow (${unitDescriptor})`
         ],
         healthcare: [
-            `Patient Care Pathway (${formattedVolume} patients)`,
-            `Healthcare Service Flow`,
-            `Treatment Process Analysis`,
-            `Patient Journey Mapping`
+            `Patient Care Pathway (${unitDescriptor})`,
+            `Healthcare Service Flow (${unitDescriptor})`,
+            `Treatment Process Analysis (${unitDescriptor})`,
+            `Patient Journey Mapping (${unitDescriptor})`
         ],
         finance: [
-            `Financial Service Flow (${formattedVolume} transactions)`,
-            `Banking Customer Journey`,
-            `Investment Process Flow`,
-            `Financial Product Analysis`
+            `Financial Service Flow (${unitDescriptor})`,
+            `Banking Customer Journey (${unitDescriptor})`,
+            `Investment Process Flow (${unitDescriptor})`,
+            `Financial Product Analysis (${unitDescriptor})`
         ],
         saas: [
-            `SaaS User Onboarding Flow (${formattedVolume} users)`,
-            `Product Feature Adoption`,
-            `Subscription Journey Analysis`,
-            `User Engagement Flow`
+            `SaaS User Onboarding Flow (${unitDescriptor})`,
+            `Product Feature Adoption (${unitDescriptor})`,
+            `Subscription Journey Analysis (${unitDescriptor})`,
+            `User Engagement Flow (${unitDescriptor})`
         ],
         manufacturing: [
-            `Manufacturing Process Flow (${formattedVolume} units)`,
-            `Production Pipeline Analysis`,
-            `Supply Chain Flow`,
-            `Quality Control Process`
+            `Manufacturing Process Flow (${unitDescriptor})`,
+            `Production Pipeline Analysis (${unitDescriptor})`,
+            `Supply Chain Flow (${unitDescriptor})`,
+            `Quality Control Process (${unitDescriptor})`
         ],
         retail: [
-            `Retail Customer Experience (${formattedVolume} customers)`,
-            `In-Store Journey Analysis`,
-            `Customer Behavior Flow`,
-            `Retail Sales Process`
+            `Retail Customer Experience (${unitDescriptor})`,
+            `In-Store Journey Analysis (${unitDescriptor})`,
+            `Customer Behavior Flow (${unitDescriptor})`,
+            `Retail Sales Process (${unitDescriptor})`
         ],
         media: [
-            `Content Engagement Flow (${formattedVolume} interactions)`,
-            `Media Consumption Pattern`,
-            `Content Performance Analysis`,
-            `Audience Engagement Journey`
+            `Content Engagement Flow (${unitDescriptor})`,
+            `Media Consumption Pattern (${unitDescriptor})`,
+            `Content Performance Analysis (${unitDescriptor})`,
+            `Audience Engagement Journey (${unitDescriptor})`
         ],
         flow: [
-            `Process Flow Diagram (${formattedVolume} items)`,
-            `Data Flow Analysis`,
-            `System Process Overview`,
-            `Workflow Visualization`
+            `Process Flow Diagram (${unitDescriptor})`,
+            `Data Flow Analysis (${unitDescriptor})`,
+            `System Process Overview (${unitDescriptor})`,
+            `Workflow Visualization (${unitDescriptor})`
         ]
     };
     
     // Select appropriate title template
-    const templates = titleTemplates[detectedContext] || titleTemplates.flow;
+    const templates = titleTemplates[detectedDataContext] || titleTemplates.flow;
     
     // Use simple selection based on number of layers
     let titleIndex = 0;
@@ -1058,8 +1159,26 @@ async function createSankeyDiagram(data) {
         // Generate and add title - prefer LLM-generated title if available
         let diagramTitle;
         if (data.llmGenerated && data.llmTitle) {
-            diagramTitle = data.llmTitle;
-            console.log('Using LLM-generated title:', diagramTitle);
+            // Use LLM-generated title and units if available
+            if (data.units && data.units.plural) {
+                const links = data.links || [];
+                const totalVolume = links.reduce((sum, link) => sum + (link.value || 0), 0);
+                
+                // Determine magnitude descriptor
+                let unitDescriptor = data.units.plural;
+                if (totalVolume >= 1000000000) {
+                    unitDescriptor = `Billions of ${data.units.plural}`;
+                } else if (totalVolume >= 1000000) {
+                    unitDescriptor = `Millions of ${data.units.plural}`;
+                } else if (totalVolume >= 1000) {
+                    unitDescriptor = `Thousands of ${data.units.plural}`;
+                }
+                
+                diagramTitle = `${data.llmTitle} (${unitDescriptor})`;
+            } else {
+                diagramTitle = data.llmTitle;
+            }
+            console.log('Using LLM-generated title with units:', diagramTitle);
         } else {
             diagramTitle = generateDiagramTitle(data);
             console.log('Using context-generated title:', diagramTitle);
@@ -1102,7 +1221,7 @@ async function createSankeyDiagram(data) {
             
             // Add tooltip
             const title = createSVGElement('title');
-            title.textContent = `${link.sourceNode.name} → ${link.targetNode.name}\n${link.value.toLocaleString()} visitors`;
+            title.textContent = `${link.sourceNode.name} → ${link.targetNode.name}\n${formatTooltipValue(link.value)}`;
             path.appendChild(title);
             
             svg.appendChild(path);
@@ -1154,17 +1273,8 @@ async function createSankeyDiagram(data) {
                     class: 'link-label'
                 });
                 
-                // Format the value (use K for thousands, M for millions)
-                let formattedValue;
-                if (link.value >= 1000000) {
-                    formattedValue = (link.value / 1000000).toFixed(1) + 'M';
-                } else if (link.value >= 1000) {
-                    formattedValue = (link.value / 1000).toFixed(1) + 'K';
-                } else {
-                    formattedValue = link.value.toString();
-                }
-                
-                flowLabel.textContent = formattedValue;
+                // Use context-aware formatting for link labels (short form for compact display)
+                flowLabel.textContent = formatValueWithUnits(link.value, true, false);
                 
                 svg.appendChild(labelBg);
                 svg.appendChild(flowLabel);
@@ -1210,7 +1320,8 @@ async function createSankeyDiagram(data) {
                 'font-weight': 'bold',
                 fill: 'white'
             });
-            valueText.textContent = node.value ? node.value.toLocaleString() : '';
+            // Show clean numbers without units (units are in title)
+            valueText.textContent = node.value ? formatValueWithUnits(node.value, true, false) : '';
             
             // Add drag functionality to node
             nodeGroup.style.cursor = 'grab';

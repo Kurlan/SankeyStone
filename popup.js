@@ -853,10 +853,18 @@ function createSankeyDiagram(data) {
         const loadingDiv = document.getElementById('loading');
         const svg = document.getElementById('sankey-svg');
         
-        // Clear SVG
-        while (svg.firstChild) {
-            svg.removeChild(svg.firstChild);
-        }
+        // Comprehensive SVG clearing - remove all child elements
+        svg.innerHTML = '';
+        
+        // Reset SVG attributes to ensure clean slate
+        svg.removeAttribute('viewBox');
+        svg.removeAttribute('preserveAspectRatio');
+        svg.style.width = '';
+        svg.style.height = '';
+        
+        // Clear any potential cached references
+        currentSvg = null;
+        currentGraph = null;
         
         // Hide loading message immediately and completely
         loadingDiv.style.display = 'none';

@@ -308,7 +308,7 @@ function getNodeColor(node) {
     }
 }
 
-// Comprehensive SVG clearing function
+// Comprehensive SVG clearing function with nuclear option
 function clearSVGCompletely(svg) {
     if (!svg) {
         console.warn('⚠️ SVG element not provided to clearSVGCompletely');
@@ -317,23 +317,50 @@ function clearSVGCompletely(svg) {
     
     console.log('🧹 Performing comprehensive SVG clear...');
     
-    // Method 1: innerHTML clear (most thorough)
-    svg.innerHTML = '';
+    // Store the parent container for potential full replacement
+    const parentContainer = svg.parentNode;
+    const svgId = svg.id;
+    const svgClasses = svg.className;
     
-    // Method 2: Remove all children manually as backup
+    // Method 1: Remove all children manually first
     while (svg.firstChild) {
         svg.removeChild(svg.firstChild);
     }
     
-    // Method 3: Query and remove specific elements that might be stuck
+    // Method 2: innerHTML clear (most thorough)
+    svg.innerHTML = '';
+    
+    // Method 3: Query and remove any remaining elements that might be stuck
     const elementsToRemove = svg.querySelectorAll('*');
+    console.log(`🧹 Found ${elementsToRemove.length} remaining elements to remove`);
     elementsToRemove.forEach(el => {
         try {
+            if (el.parentNode) {
+                el.parentNode.removeChild(el);
+            }
             el.remove();
         } catch (e) {
-            // Ignore removal errors
+            console.warn('⚠️ Could not remove element:', e);
         }
     });
+    
+    // Method 4: Nuclear option - replace the entire SVG element if cleanup fails
+    const remainingAfterCleanup = svg.children.length;
+    if (remainingAfterCleanup > 0) {
+        console.warn(`💥 Nuclear option: ${remainingAfterCleanup} elements persist, replacing entire SVG...`);
+        
+        // Create a completely new SVG element
+        const newSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        newSvg.id = svgId;
+        newSvg.className = svgClasses;
+        
+        // Replace the old SVG with the new one
+        if (parentContainer) {
+            parentContainer.replaceChild(newSvg, svg);
+            console.log('✅ SVG element completely replaced');
+            return newSvg; // Return the new SVG for updating references
+        }
+    }
     
     // Reset all SVG attributes to default state
     const attributesToRemove = ['viewBox', 'preserveAspectRatio', 'width', 'height'];
@@ -349,10 +376,12 @@ function clearSVGCompletely(svg) {
     svg.className = '';
     svg.classList.remove('dragging');
     
-    // Force a layout recalculation
+    // Force multiple layout recalculations to ensure cleanup
     svg.offsetHeight; // Trigger reflow
+    svg.offsetWidth;  // Trigger reflow again
     
-    console.log('✅ SVG completely cleared and reset');
+    console.log(`✅ SVG completely cleared and reset (${svg.children.length} children remaining)`);
+    return svg; // Return the original SVG if no replacement needed
 }
 
 // Create SVG elements using vanilla JavaScript
@@ -421,6 +450,26 @@ function updateLinksForNode(draggedNode) {
         const linkIndex = currentGraph.links.indexOf(link);
         if (pathElements[linkIndex]) {
             pathElements[linkIndex].setAttribute('d', path);
+        }
+        
+        // Update flow label position if it exists
+        const syMid = (sy1 + sy2) / 2;
+        const tyMid = (ty1 + ty2) / 2;
+        const labelX = (x1 + x2) / 2;
+        const labelY = (syMid + tyMid) / 2;
+        
+        // Find corresponding label background and text elements
+        const labelBackgrounds = currentSvg.querySelectorAll('.link-label-bg');
+        const labelTexts = currentSvg.querySelectorAll('.link-label');
+        
+        if (labelBackgrounds[linkIndex]) {
+            labelBackgrounds[linkIndex].setAttribute('x', labelX - 15);
+            labelBackgrounds[linkIndex].setAttribute('y', labelY - 7);
+        }
+        
+        if (labelTexts[linkIndex]) {
+            labelTexts[linkIndex].setAttribute('x', labelX);
+            labelTexts[linkIndex].setAttribute('y', labelY);
         }
     });
 }
@@ -728,7 +777,7 @@ function calculateSankeyLayout(data) {
     const numLayers = layers.length;
     
     // Dynamic layout parameters
-    const nodeWidth = 30;
+    const nodeWidth = 50; // Increased width for better horizontal padding
     const minNodeHeight = 20; // Minimum height for readability
     const maxNodeHeight = 100; // Reduced max height to allow more space for labels
     const basePadding = 12; // Base padding between nodes
@@ -892,7 +941,7 @@ function calculateSankeyLayout(data) {
     return { nodes, links, dimensions: { width: diagramWidth, height: diagramHeight + 40 } };
 }
 
-function createSankeyDiagram(data) {
+async function createSankeyDiagram(data) {
     try {
         console.log('Creating pure JavaScript Sankey diagram');
         
@@ -901,8 +950,15 @@ function createSankeyDiagram(data) {
         const svg = document.getElementById('sankey-svg');
         const container = document.getElementById('sankey-container');
         
-        // Force a synchronous clear and reset
-        clearSVGCompletely(svg);
+        // Force a comprehensive clear and reset with verification
+        let cleanSvg = clearSVGCompletely(svg);
+        
+        // If SVG was replaced, update our reference
+        if (cleanSvg !== svg) {
+            console.log('🔄 SVG was replaced, updating references...');
+            // Update the svg variable to point to the new element
+            svg = cleanSvg;
+        }
         
         // Clear any cached references first
         currentSvg = null;
@@ -912,6 +968,23 @@ function createSankeyDiagram(data) {
         if (container) {
             container.style.height = '';
         }
+        
+        // Force a small delay to ensure clearing is complete
+        await new Promise(resolve => setTimeout(resolve, 50));
+        
+        // Double-check that clearing was successful
+        if (svg.children.length > 0) {
+            console.warn(`⚠️ Warning: ${svg.children.length} elements still exist after clearing + delay. Forcing additional cleanup...`);
+            // Additional aggressive cleanup
+            while (svg.firstChild) {
+                svg.removeChild(svg.firstChild);
+            }
+            svg.innerHTML = '';
+            // Another small delay after forced cleanup
+            await new Promise(resolve => setTimeout(resolve, 25));
+        }
+        
+        console.log(`🧹 SVG verified clean: ${svg.children.length} children remaining`);
         
         // Hide loading message immediately and completely
         loadingDiv.style.display = 'none';
@@ -980,7 +1053,6 @@ function createSankeyDiagram(data) {
         svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
         
         // Adjust container height if needed
-        const container = document.getElementById('sankey-container');
         container.style.height = `${finalHeight + 20}px`;
         
         // Generate and add title - prefer LLM-generated title if available
@@ -1034,6 +1106,69 @@ function createSankeyDiagram(data) {
             path.appendChild(title);
             
             svg.appendChild(path);
+            
+            // Add flow value label on the link (only for significant flows)
+            if (link.value >= maxValue * 0.05) { // Only show labels for flows >= 5% of max
+                // Calculate the midpoint of the link for label placement
+                const sourceNode = link.sourceNode;
+                const targetNode = link.targetNode;
+                
+                const x1 = sourceNode.x + sourceNode.width;
+                const sy1 = sourceNode.y + link.sourceY1;
+                const sy2 = sourceNode.y + link.sourceY2;
+                const syMid = (sy1 + sy2) / 2;
+                
+                const x2 = targetNode.x;
+                const ty1 = targetNode.y + link.targetY1;
+                const ty2 = targetNode.y + link.targetY2;
+                const tyMid = (ty1 + ty2) / 2;
+                
+                // Calculate label position at the curve midpoint
+                const labelX = (x1 + x2) / 2;
+                const labelY = (syMid + tyMid) / 2;
+                
+                // Create a background rectangle for the label
+                const labelBg = createSVGElement('rect', {
+                    x: labelX - 15,
+                    y: labelY - 7,
+                    width: 30,
+                    height: 14,
+                    fill: 'white',
+                    'fill-opacity': '0.9',
+                    stroke: '#ccc',
+                    'stroke-width': '0.5',
+                    rx: 3,
+                    ry: 3,
+                    class: 'link-label-bg'
+                });
+                
+                // Create the flow value label
+                const flowLabel = createSVGElement('text', {
+                    x: labelX,
+                    y: labelY,
+                    'text-anchor': 'middle',
+                    'dominant-baseline': 'middle',
+                    'font-size': '9px',
+                    'font-weight': 'bold',
+                    fill: '#555',
+                    class: 'link-label'
+                });
+                
+                // Format the value (use K for thousands, M for millions)
+                let formattedValue;
+                if (link.value >= 1000000) {
+                    formattedValue = (link.value / 1000000).toFixed(1) + 'M';
+                } else if (link.value >= 1000) {
+                    formattedValue = (link.value / 1000).toFixed(1) + 'K';
+                } else {
+                    formattedValue = link.value.toString();
+                }
+                
+                flowLabel.textContent = formattedValue;
+                
+                svg.appendChild(labelBg);
+                svg.appendChild(flowLabel);
+            }
         });
         
         // Create nodes

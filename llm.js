@@ -69,15 +69,31 @@ REQUIREMENTS:
 7. Organize nodes into logical layers (0 = sources, 1 = middle stages, 2 = outcomes, etc.)
 8. If multiple data sources or processes are present, choose the most significant one or create a comprehensive diagram
 9. Ensure the diagram tells a coherent story about the page content
+10. **CRITICAL**: Determine what units the data represents (dollars, visitors, customers, units sold, etc.) and specify this clearly
 
 IMPORTANT: Look for tables, charts, statistics, processes, workflows, or any quantitative data that could be visualized as flows.
+
+UNITS IDENTIFICATION:
+====================
+Carefully analyze the data to determine what the numbers represent. Common examples:
+- Financial data: dollars, revenue, costs, profits
+- Website analytics: visitors, page views, sessions, clicks
+- E-commerce: customers, orders, products sold, transactions
+- Manufacturing: units produced, materials, components
+- Healthcare: patients, treatments, procedures
+- Education: students, enrollments, courses
 
 RESPONSE FORMAT:
 ===============
 Respond with ONLY a valid JSON object in this exact format (no markdown, no extra text):
 
 {
-  "title": "Descriptive diagram title",
+  "title": "Descriptive diagram title (WITHOUT units - units will be added separately)",
+  "units": {
+    "singular": "dollar",
+    "plural": "dollars",
+    "type": "currency"
+  },
   "nodes": [
     {
       "id": 0,
@@ -93,8 +109,15 @@ Respond with ONLY a valid JSON object in this exact format (no markdown, no extr
     }
   ],
   "confidence": 0.8,
-  "reasoning": "Brief explanation of why this diagram represents the page content and what data sources were used"
+  "reasoning": "Brief explanation of why this diagram represents the page content, what data sources were used, and what the units represent"
 }
+
+UNIT EXAMPLES:
+- Currency: {"singular": "dollar", "plural": "dollars", "type": "currency"}
+- Traffic: {"singular": "visitor", "plural": "visitors", "type": "people"}
+- E-commerce: {"singular": "customer", "plural": "customers", "type": "people"}
+- Manufacturing: {"singular": "unit", "plural": "units", "type": "items"}
+- Transactions: {"singular": "transaction", "plural": "transactions", "type": "events"}
 
 Ensure all node IDs are unique integers starting from 0, and all link source/target IDs reference existing nodes.`;
 }

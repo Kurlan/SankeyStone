@@ -42,27 +42,35 @@ async function getClaudeApiKey() {
  * Create a prompt for Claude to analyze page context and generate Sankey diagram data
  */
 function createSankeyPrompt(pageContext) {
+    const truncationNote = pageContext.truncated ? 
+        `\n\nNOTE: The page content below has been truncated to ${pageContext.fullPageContent.length.toLocaleString()} characters from the original ${pageContext.contentLength.toLocaleString()} characters due to API limits.` : '';
+    
     return `You are an expert data analyst specializing in creating Sankey diagrams from web page content. 
 
-Please analyze the following page context and create a Sankey diagram that represents the most meaningful flow or process described on this page.
+Please analyze the COMPLETE page content below and create a Sankey diagram that represents the most meaningful flow or process described on this page. The entire page content is provided, including all tables, lists, and text.
 
-PAGE CONTEXT:
-=============
+PAGE INFORMATION:
+================
 Title: ${pageContext.title}
-URL: ${pageContext.url}
-Main Headings: ${pageContext.headings.join(', ')}
-Key Content: ${pageContext.content.substring(0, 2000)}
-Tables/Data: ${pageContext.tables.length > 0 ? pageContext.tables.join('\n') : 'None found'}
-Lists: ${pageContext.lists.length > 0 ? pageContext.lists.join('\n') : 'None found'}
+URL: ${pageContext.url}${truncationNote}
+
+FULL PAGE CONTENT:
+==================
+${pageContext.fullPageContent}
 
 REQUIREMENTS:
 =============
-1. Generate a descriptive title for the diagram that captures the main flow/process
-2. Create nodes representing the key stages, categories, or entities in the flow
-3. Create links showing how items/volume flows between these nodes
-4. Use realistic values that make sense for the context
-5. Organize nodes into logical layers (0 = sources, 1 = middle stages, 2 = outcomes)
-6. Ensure the diagram tells a coherent story about the page content
+1. Analyze the ENTIRE page content above - look for any tables, data, processes, flows, or relationships
+2. Identify the most meaningful flow or process that can be represented as a Sankey diagram
+3. Generate a descriptive title for the diagram that captures the main flow/process
+4. Create nodes representing the key stages, categories, or entities in the flow
+5. Create links showing how items/volume flows between these nodes
+6. Use realistic values that make sense for the context (extract actual numbers from tables/content when possible)
+7. Organize nodes into logical layers (0 = sources, 1 = middle stages, 2 = outcomes, etc.)
+8. If multiple data sources or processes are present, choose the most significant one or create a comprehensive diagram
+9. Ensure the diagram tells a coherent story about the page content
+
+IMPORTANT: Look for tables, charts, statistics, processes, workflows, or any quantitative data that could be visualized as flows.
 
 RESPONSE FORMAT:
 ===============
@@ -85,7 +93,7 @@ Respond with ONLY a valid JSON object in this exact format (no markdown, no extr
     }
   ],
   "confidence": 0.8,
-  "reasoning": "Brief explanation of why this diagram represents the page content"
+  "reasoning": "Brief explanation of why this diagram represents the page content and what data sources were used"
 }
 
 Ensure all node IDs are unique integers starting from 0, and all link source/target IDs reference existing nodes.`;
@@ -209,13 +217,28 @@ async function generateSankeyWithLLM(pageContext) {
     try {
         console.log('🤖 Starting LLM-based Sankey generation...');
         
+        // Enhanced logging for full page content transmission
+        console.log('🤖 LLM Analysis - FULL PAGE Content Summary:');
+        console.log(`   - Title: ${pageContext?.title || 'N/A'}`);
+        console.log(`   - URL: ${pageContext?.url || 'N/A'}`);
+        console.log(`   - Original page length: ${pageContext?.contentLength?.toLocaleString() || 0} characters`);
+        console.log(`   - Content sent to LLM: ${pageContext?.fullPageContent?.length?.toLocaleString() || 0} characters`);
+        console.log(`   - Content truncated: ${pageContext?.truncated ? 'YES' : 'NO'}`);
+        
+        if (pageContext?.truncated) {
+            const percentageSent = ((pageContext.fullPageContent.length / pageContext.contentLength) * 100).toFixed(1);
+            console.log(`   - Sending ${percentageSent}% of original content to LLM`);
+        }
+        
+        console.log('🤖 Full page content includes ALL tables, lists, and text automatically');
+        
         // Log system event for debugging
         if (typeof logSystemEvent === 'function') {
-            logSystemEvent('Starting LLM-based Sankey generation', {
+            logSystemEvent('Starting LLM-based Sankey generation with full page content', {
                 pageTitle: pageContext?.title,
-                contentLength: pageContext?.content?.length || 0,
-                headingsCount: pageContext?.headings?.length || 0,
-                tablesCount: pageContext?.tables?.length || 0
+                originalContentLength: pageContext?.contentLength || 0,
+                sentContentLength: pageContext?.fullPageContent?.length || 0,
+                truncated: pageContext?.truncated || false
             });
         }
         

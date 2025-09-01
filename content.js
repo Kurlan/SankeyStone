@@ -146,90 +146,57 @@ function extractSankeyTableData() {
     }
 }
 
-// Function to extract page context for LLM analysis
+// Function to extract full page context for LLM analysis
 function extractPageContext() {
     try {
-        console.log('🔍 Extracting page context for LLM analysis...');
+        console.log('🔍 Extracting FULL page content for comprehensive LLM analysis...');
         
-        // Extract page title
+        // Extract page title and URL
         const title = document.title || 'Untitled Page';
+        const url = window.location.href;
         
-        // Extract main headings
-        const headings = [];
-        const headingSelectors = ['h1', 'h2', 'h3'];
-        headingSelectors.forEach(selector => {
-            const elements = document.querySelectorAll(selector);
-            elements.forEach(el => {
-                const text = el.textContent.trim();
-                if (text && text.length < 200) { // Avoid very long headings
-                    headings.push(text);
-                }
-            });
+        // Get the full page text content
+        // Remove script and style elements to avoid noise
+        const elementsToRemove = ['script', 'style', 'noscript'];
+        const clonedDoc = document.cloneNode(true);
+        
+        elementsToRemove.forEach(tagName => {
+            const elements = clonedDoc.querySelectorAll(tagName);
+            elements.forEach(el => el.remove());
         });
         
-        // Extract main text content (paragraphs, divs with substantial text)
-        let content = '';
-        const contentSelectors = ['p', 'div', 'article', 'section', 'main'];
-        contentSelectors.forEach(selector => {
-            const elements = document.querySelectorAll(selector);
-            elements.forEach(el => {
-                const text = el.textContent.trim();
-                // Only include elements with substantial text content
-                if (text && text.length > 20 && text.length < 500) {
-                    content += text + ' ';
-                }
-            });
-        });
+        // Extract the full text content from the cleaned document
+        const fullContent = clonedDoc.body ? clonedDoc.body.innerText || clonedDoc.body.textContent : '';
         
-        // Extract table data
-        const tables = [];
-        const tableElements = document.querySelectorAll('table');
-        tableElements.forEach(table => {
-            const rows = table.querySelectorAll('tr');
-            if (rows.length > 1 && rows.length < 20) { // Reasonable table size
-                let tableText = '';
-                rows.forEach((row, idx) => {
-                    if (idx < 10) { // Limit rows to avoid too much data
-                        const cells = row.querySelectorAll('td, th');
-                        const rowText = Array.from(cells).map(cell => cell.textContent.trim()).join(' | ');
-                        if (rowText) {
-                            tableText += rowText + '\n';
-                        }
-                    }
-                });
-                if (tableText) {
-                    tables.push(tableText.trim());
-                }
-            }
-        });
-        
-        // Extract list data
-        const lists = [];
-        const listElements = document.querySelectorAll('ul, ol');
-        listElements.forEach(list => {
-            const items = list.querySelectorAll('li');
-            if (items.length > 1 && items.length < 15) { // Reasonable list size
-                const listText = Array.from(items).map(item => item.textContent.trim()).join(', ');
-                if (listText && listText.length < 500) {
-                    lists.push(listText);
-                }
-            }
-        });
+        // Claude 3.5 Sonnet has a 200k token limit (~150k words)
+        // Let's use a conservative limit of ~100k characters to ensure we stay well within limits
+        const maxContentLength = 100000;
+        const truncatedContent = fullContent.substring(0, maxContentLength);
         
         const pageContext = {
             title: title,
-            url: window.location.href,
-            headings: headings.slice(0, 10), // Limit to first 10 headings
-            content: content.substring(0, 3000), // Limit content length
-            tables: tables.slice(0, 5), // Limit to first 5 tables
-            lists: lists.slice(0, 5) // Limit to first 5 lists
+            url: url,
+            fullPageContent: truncatedContent,
+            contentLength: fullContent.length,
+            truncated: fullContent.length > maxContentLength
         };
         
-        console.log('✅ Extracted page context:', pageContext);
+        // Enhanced logging to show full page extraction
+        console.log('✅ Extracted FULL page context for LLM analysis:');
+        console.log(`   - Title: ${pageContext.title}`);
+        console.log(`   - URL: ${pageContext.url}`);
+        console.log(`   - Original content length: ${pageContext.contentLength.toLocaleString()} characters`);
+        console.log(`   - Sent to LLM: ${truncatedContent.length.toLocaleString()} characters`);
+        console.log(`   - Content truncated: ${pageContext.truncated ? 'YES' : 'NO'}`);
+        
+        if (pageContext.truncated) {
+            console.log(`   - Truncation: Sending first ${maxContentLength.toLocaleString()} characters to LLM`);
+        }
+        
         return pageContext;
         
     } catch (error) {
-        console.error('❌ Error extracting page context:', error);
+        console.error('❌ Error extracting full page context:', error);
         return null;
     }
 }

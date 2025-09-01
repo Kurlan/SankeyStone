@@ -1643,22 +1643,86 @@ async function tryLLMGeneration() {
             isLLMAvailableFunction: !!(window.LLMIntegration && window.LLMIntegration.isLLMAvailable)
         });
         
+        // Enhanced LLM availability debugging
+        console.log('🤖 LLM Debug - Checking availability:');
+        console.log(`   - window.LLMIntegration exists: ${!!window.LLMIntegration}`);
+        
+        if (!window.LLMIntegration) {
+            console.log('❌ LLM Integration not loaded - check if llm.js is loaded properly');
+            return null;
+        }
+        
+        const llmAvailable = await window.LLMIntegration.isLLMAvailable();
+        console.log(`   - LLM isLLMAvailable() result: ${llmAvailable}`);
+        
+        // Check individual requirements
+        try {
+            const stored = await chrome.storage.sync.get([
+                STORAGE_KEYS.ANTHROPIC_KEY, 
+                STORAGE_KEYS.AUTO_ANALYZE
+            ]);
+            
+            const hasKey = stored[STORAGE_KEYS.ANTHROPIC_KEY] && stored[STORAGE_KEYS.ANTHROPIC_KEY].trim();
+            const isEnabled = stored[STORAGE_KEYS.AUTO_ANALYZE] === true;
+            
+            console.log(`   - Has API key: ${!!hasKey}`);
+            console.log(`   - Auto-analyze enabled: ${isEnabled}`);
+            
+            if (!hasKey) {
+                console.log('⚠️ LLM not available: No Claude API key configured');
+                console.log('   → Click the ⚙️ button to add your Claude API key');
+                return null;
+            }
+            
+            if (!isEnabled) {
+                console.log('⚠️ LLM not available: Auto-analyze is disabled');
+                console.log('   → Click the ⚙️ button and enable "Auto-analyze"');
+                return null;
+            }
+        } catch (error) {
+            console.error('❌ Error checking LLM configuration:', error);
+            return null;
+        }
+        
         // Check if LLM is available first
-        if (window.LLMIntegration && await window.LLMIntegration.isLLMAvailable()) {
+        if (window.LLMIntegration && llmAvailable) {
+            console.log('✅ LLM is available and properly configured!');
             console.log('🤖 LLM is available, attempting to generate diagram from page context...');
             logSystemEvent('LLM is available and enabled');
             
             updateLoadingStatus('Extracting page context...', 2, 5);
             
             // Get page context
+            console.log('🤖 About to call getPageContext() for LLM analysis...');
             const pageContext = await getPageContext();
+            console.log('🤖 getPageContext() returned:', pageContext);
+            
             if (pageContext) {
                 console.log('🤖 Got page context for LLM:', pageContext);
                 
                 updateLoadingStatus('Analyzing content with Claude AI...', 3, 5);
                 
                 // Try to generate diagram with LLM
+                console.log('🤖 Calling window.LLMIntegration.generateSankeyWithLLM with pageContext...');
+                console.log('🤖 PageContext preview:', {
+                    title: pageContext?.title,
+                    url: pageContext?.url,
+                    contentLength: pageContext?.fullPageContent?.length || pageContext?.content?.length || 0,
+                    hasContent: !!(pageContext?.fullPageContent || pageContext?.content),
+                    truncated: pageContext?.truncated
+                });
+                
                 const llmResult = await window.LLMIntegration.generateSankeyWithLLM(pageContext);
+                
+                console.log('🤖 LLM generateSankeyWithLLM returned:', llmResult);
+                console.log('🤖 Result validation:', {
+                    hasResult: !!llmResult,
+                    hasNodes: !!(llmResult && llmResult.nodes),
+                    hasLinks: !!(llmResult && llmResult.links),
+                    nodeCount: llmResult?.nodes?.length || 0,
+                    linkCount: llmResult?.links?.length || 0
+                });
+                
                 if (llmResult && llmResult.nodes && llmResult.links) {
                     console.log('✅ Successfully generated diagram with LLM:', llmResult);
                     
